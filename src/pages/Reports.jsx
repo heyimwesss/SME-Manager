@@ -146,7 +146,8 @@ export default function Reports() {
           </ul>
 
           <h3>Transactions</h3>
-          <table>
+<div className="report-table-container">
+  <table className="report-table">
             <thead>
               <tr>
                 <th>Type</th>
@@ -173,8 +174,8 @@ export default function Reports() {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+</table>
+</div>        </div>
 
         <button className="btn" style={{ marginTop: "20px" }} onClick={saveAsImage}>
           Save Report as Image

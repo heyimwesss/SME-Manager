@@ -320,6 +320,46 @@ button.btn-delete:hover {
   transform: translateY(-3px);
 }
 
+/* REPORT TABLE */
+.report-table-container{
+  width:100%;
+}
+
+.report-table{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed; /* forces columns to fit screen */
+}
+
+.report-table th,
+.report-table td{
+  padding:8px;
+  border:1px solid #ddd;
+  word-wrap:break-word;
+}
+
+.report-table th{
+  background:#f3f4f6;
+}
+
+/* MOBILE OPTIMIZATION */
+@media(max-width:600px){
+
+  .report-table th,
+  .report-table td{
+    padding:6px;
+    font-size:12px;
+  }
+
+  .report-table td:nth-child(2){
+    max-width:120px; /* item/description column */
+    overflow-wrap:break-word;
+  }
+
+  .report-card{
+  overflow-x:auto;
+}
+}
 /* ---------- MEDIA QUERIES ---------- */
 @media(max-width: 1000px){
   .page { padding: 10px; }
