@@ -353,7 +353,9 @@ button.btn-delete:hover {
   .transactions-table td {
     padding: 8px;
   }
-
+.table-container {
+  overflow-x: auto;
+}
   .form-group label { font-size: 14px; }
   .form-group input, .form-group select { font-size: 14px; }
   button.btn { width: 100%; padding: 10px; font-size: 14px; }
