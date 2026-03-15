@@ -145,37 +145,46 @@ export default function Reports() {
             ))}
           </ul>
 
-          <h3>Transactions</h3>
+<h3>Transactions</h3>
+
 <div className="report-table-container">
-  <table className="report-table">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Item/Description</th>
-                <th>Amount</th>
-                <th>Payment</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSales.map((s) => (
-                <tr key={"s" + s.id}>
-                  <td>Sale</td>
-                  <td>{s.item_name}</td>
-                  <td className="monofont">{formatMoney(s.price)}</td>
-                  <td>{s.payment_mode}</td>
-                </tr>
-              ))}
-              {filteredExpenses.map((e) => (
-                <tr key={"e" + e.id}>
-                  <td>Expense</td>
-                  <td>{e.description}</td>
-                  <td className="monofont faded-red">{formatMoney(e.amount)}</td>
-                  <td>—</td>
-                </tr>
-              ))}
-            </tbody>
+<table className="report-table">
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Item / Description</th>
+      <th className="amount-col">Amount</th>
+      <th>Payment</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    {filteredSales.map((s) => (
+      <tr key={"s" + s.id} className="sale-row">
+        <td>Sale</td>
+        <td>{s.item_name}</td>
+        <td className="monofont amount-col faded-green">
+          {formatMoney(s.price)}
+        </td>
+        <td>{s.payment_mode}</td>
+      </tr>
+    ))}
+
+    {filteredExpenses.map((e) => (
+      <tr key={"e" + e.id} className="expense-row">
+        <td>Expense</td>
+        <td>{e.description}</td>
+        <td className="monofont amount-col faded-red">
+          {formatMoney(e.amount)}
+        </td>
+        <td>—</td>
+      </tr>
+    ))}
+
+  </tbody>
 </table>
-</div>        </div>
+</div>
+       </div>
 
         <button className="btn" style={{ marginTop: "20px" }} onClick={saveAsImage}>
           Save Report as Image

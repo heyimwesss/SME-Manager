@@ -320,45 +320,75 @@ button.btn-delete:hover {
   transform: translateY(-3px);
 }
 
-/* REPORT TABLE */
+/* REPORT TABLE CONTAINER */
 .report-table-container{
   width:100%;
+  overflow-x:auto;
 }
 
+/* MAIN REPORT TABLE */
 .report-table{
   width:100%;
   border-collapse:collapse;
-  table-layout:fixed; /* forces columns to fit screen */
-}
-
-.report-table th,
-.report-table td{
-  padding:8px;
-  border:1px solid #ddd;
-  word-wrap:break-word;
+  table-layout:fixed;
+  font-size:14px;
 }
 
 .report-table th{
+  text-align:left;
+  padding:10px;
   background:#f3f4f6;
+  border-bottom:2px solid #ddd;
+}
+
+.report-table td{
+  padding:10px;
+  border-bottom:1px solid #eee;
+  vertical-align:top;
+  word-break:break-word;
+}
+
+/* FINANCIAL ALIGNMENT */
+.amount-col{
+  text-align:right;
+  font-family:monospace;
+  font-weight:600;
+}
+
+/* COLOR CODING */
+.sale-row .amount-col{
+  color:#166534; /* green */
+}
+
+.expense-row .amount-col{
+  color:#b91c1c; /* red */
+}
+
+/* ROW HOVER */
+.report-table tbody tr:hover{
+  background:#fafafa;
 }
 
 /* MOBILE OPTIMIZATION */
 @media(max-width:600px){
 
-  .report-table th,
-  .report-table td{
-    padding:6px;
+  .report-table{
     font-size:12px;
   }
 
-  .report-table td:nth-child(2){
-    max-width:120px; /* item/description column */
-    overflow-wrap:break-word;
+  .report-table th,
+  .report-table td{
+    padding:6px;
   }
 
-  .report-card{
-  overflow-x:auto;
-}
+  .report-table th:nth-child(1){
+    width:60px;
+  }
+
+  .report-table th:nth-child(3){
+    width:90px;
+  }
+
 }
 /* ---------- MEDIA QUERIES ---------- */
 @media(max-width: 1000px){
