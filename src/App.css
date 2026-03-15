@@ -1,0 +1,356 @@
+/* ---------- GLOBAL STYLES ---------- */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f4f4f4;
+  color: #333;
+}
+
+.page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 15px;
+}
+
+
+/* ---------- NAVBAR ---------- */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background: #0872eb;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.nav-brand {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-links li {
+  list-style: none;
+}
+
+.nav-links li a, .nav-links li button {
+  color: white;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* Hamburger button */
+.hamburger {
+  display: none;
+  font-size: 24px;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+/* Mobile nav links */
+@media (max-width: 600px) {
+  .hamburger {
+    display: block;
+  }
+
+  .nav-links {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background: #0a7dca;
+    flex-direction: column;
+    display: none; /* hidden by default */
+    padding: 10px;
+    z-index: 100;
+  }
+  
+
+  .nav-links.open {
+    display: flex; /* show when open */
+  }
+
+  .nav-links li {
+    margin: 10px 0;
+    list-style: none;
+  }
+
+  .nav-links li a, .nav-links li button {
+    color: white;
+    text-decoration: none;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+  }
+}
+
+/* ---------- FORMS ---------- */
+.form-container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+button.btn {
+  background: #4f46e5;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button.btn:hover {
+  background: #4338ca;
+}
+
+button.btn-delete {
+  background: #e11d48;
+}
+
+button.btn-delete:hover {
+  background: #be123c;
+}
+
+/* ---------- DASHBOARD CARDS ---------- */
+.cards {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 25px;
+}
+
+.card {
+  flex: 1;
+  min-width: 220px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.card .amount {
+  font-size: 26px;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.card-sales { background: #eef2ff; }
+.card-expenses { background: #fee2e2; }
+.card-profit { background: #dcfce7; }
+
+.card:hover { transform: translateY(-3px); }
+
+/* ---------- TABLES ---------- */
+.table-container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 auto;
+}
+
+.transactions-table th, .transactions-table td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.transactions-table th {
+  background: #098ac5;
+  color: white;
+}
+
+/* ---------- MOBILE CARDS ---------- */
+.transactions-cards {
+  display: none;
+}
+
+.transaction-card {
+  border: 1px solid #ccc;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: #f9f9f9;
+}
+
+.transaction-card p {
+  margin: 4px 0;
+}
+
+/* ---------- SUMMARY / MINI REPORT ---------- */
+.summary {
+  margin-top: 20px;
+  background: #eef2ff;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.summary p {
+  font-weight: bold;
+  margin: 5px 0;
+}
+
+/* ---------- MONOSPACED FIGURES & COLORS ---------- */
+.monofont {
+  font-family: monospace;
+}
+
+.faded-red { color: #b91c1c; }
+.faded-green { color: #166534; }
+
+/* ---------- REPORT CARD ---------- */
+.report-card {
+  padding: 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  margin-top: 20px;
+}
+
+.report-card table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.report-card table th,
+.report-card table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.report-card table th {
+  background-color: #f3f4f6;
+}
+
+/* ---------- ACCOUNTS LANDING PAGE ---------- */
+.accounts-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.account-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  min-width: 180px;
+  max-width: 220px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.account-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.account-card h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.create-account {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+  color: #4f46e5;
+  border: 2px dashed #4f46e5;
+}
+
+.create-account:hover {
+  background: #eef2ff;
+  transform: translateY(-3px);
+}
+
+/* ---------- MEDIA QUERIES ---------- */
+@media(max-width: 1000px){
+  .page { padding: 10px; }
+}
+
+@media(max-width: 600px){
+
+  .hamburger { display: block; }
+
+  .nav-links {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background: #4f46e5;
+    flex-direction: column;
+    display: none;
+    padding: 10px;
+  }
+
+  .nav-links.open { display: flex; }
+
+  .nav-links li { margin: 10px 0; }
+
+  .transactions-table { display: none; }
+  .transactions-cards { display: block; }
+
+  .form-group label { font-size: 14px; }
+  .form-group input, .form-group select { font-size: 14px; }
+  button.btn { width: 100%; padding: 10px; font-size: 14px; }
+  .summary p { font-size: 14px; }
+
+  .cards { flex-direction: column; }
+}
