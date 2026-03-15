@@ -9,12 +9,11 @@ export default function Transactions() {
   const { activeAccount } = useAccount();
   const navigate = useNavigate();
 
-  // Redirect if no active account
   useEffect(() => {
     if (!activeAccount) navigate("/accounts");
   }, [activeAccount, navigate]);
 
-  // SALES FORM
+  // SALE FORM
   const [item, setItem] = useState("");
   const [price, setPrice] = useState("");
   const [payment, setPayment] = useState("Cash");
@@ -28,13 +27,10 @@ export default function Transactions() {
   const [expenses, setExpenses] = useState([]);
   const [remittances, setRemittances] = useState([]);
 
-  // VIEW
   const [view, setView] = useState("today");
-
   const todayStr = new Date().toISOString().split("T")[0];
   const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split("T")[0];
 
-  // Fetch data on account load
   useEffect(() => {
     if (activeAccount) {
       fetchSales();
@@ -70,6 +66,22 @@ export default function Transactions() {
     setRemittances(data || []);
   }
 
+  // DELETE HANDLERS
+  async function deleteSale(id) {
+    await supabase.from("sales").delete().eq("id", id);
+    setSales(sales.filter((s) => s.id !== id));
+  }
+
+  async function deleteExpense(id) {
+    await supabase.from("expenses").delete().eq("id", id);
+    setExpenses(expenses.filter((e) => e.id !== id));
+  }
+
+  async function deleteRemittance(id) {
+    await supabase.from("cash_remittances").delete().eq("id", id);
+    setRemittances(remittances.filter((r) => r.id !== id));
+  }
+
   // FILTERS
   const filteredSales = sales.filter((s) => {
     const date = s.sold_at.split("T")[0];
@@ -99,7 +111,6 @@ export default function Transactions() {
   );
   const totalExpenses = filteredExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
   const totalRemittances = filteredRemittances.reduce((sum, r) => sum + Number(r.amount), 0);
-
   const cashOnHand = totalCashSales - totalExpenses - totalRemittances;
 
   if (!activeAccount) return null;
@@ -117,12 +128,10 @@ export default function Transactions() {
             <label>Item Name</label>
             <input value={item} onChange={(e) => setItem(e.target.value)} />
           </div>
-
           <div className="form-group">
             <label>Price</label>
             <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
-
           <div className="form-group">
             <label>Payment Mode</label>
             <select value={payment} onChange={(e) => setPayment(e.target.value)}>
@@ -132,19 +141,15 @@ export default function Transactions() {
               <option>Bank</option>
             </select>
           </div>
-
           <button
             className="btn"
             onClick={async () => {
               if (!item || !price) return alert("Fill all fields");
-
               const { data, error } = await supabase
                 .from("sales")
                 .insert([{ item_name: item, price, payment_mode: payment, account_id: activeAccount.id }])
                 .select();
-
               if (error) return alert("Error saving sale");
-
               setSales([data[0], ...sales]);
               setItem("");
               setPrice("");
@@ -161,14 +166,11 @@ export default function Transactions() {
           <ExpenseForm
             onSave={async (desc, amount) => {
               if (!desc || !amount) return alert("Fill all fields");
-
               const { data, error } = await supabase
                 .from("expenses")
                 .insert([{ description: desc, amount, account_id: activeAccount.id }])
                 .select();
-
               if (error) return alert("Error saving expense");
-
               setExpenses([data[0], ...expenses]);
             }}
           />
@@ -177,12 +179,10 @@ export default function Transactions() {
         {/* ---------- CASH REMITTANCE ---------- */}
         <div className="form-container" style={{ marginTop: 30 }}>
           <h2>Give Cash to Boss</h2>
-
           <p>
             Available Cash:{" "}
             <span className="monofont faded-green">{formatMoney(cashOnHand)}</span>
           </p>
-
           <div className="form-group">
             <label>Amount</label>
             <input
@@ -193,12 +193,10 @@ export default function Transactions() {
               placeholder="Enter amount to give"
             />
           </div>
-
           <div className="form-group">
             <label>Note</label>
             <input value={remitNote} onChange={(e) => setRemitNote(e.target.value)} />
           </div>
-
           <button
             className="btn"
             disabled={cashOnHand <= 0 || !remitAmount}
@@ -206,14 +204,11 @@ export default function Transactions() {
               if (Number(remitAmount) > cashOnHand) {
                 return alert("Cannot give more cash than available.");
               }
-
               const { data, error } = await supabase
                 .from("cash_remittances")
                 .insert([{ amount: remitAmount, note: remitNote, account_id: activeAccount.id }])
                 .select();
-
               if (error) return alert(error.message);
-
               setRemittances([data[0], ...remittances]);
               setRemitAmount("");
             }}
@@ -225,7 +220,6 @@ export default function Transactions() {
         {/* ---------- TRANSACTIONS TABLE ---------- */}
         <div className="table-container" style={{ marginTop: 30 }}>
           <h2>Transactions</h2>
-
           <div className="form-group">
             <label>View</label>
             <select value={view} onChange={(e) => setView(e.target.value)}>
@@ -242,6 +236,7 @@ export default function Transactions() {
                 <th>Description</th>
                 <th>Amount</th>
                 <th>Payment</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -251,32 +246,44 @@ export default function Transactions() {
                   <td>{s.item_name}</td>
                   <td className="monofont faded-green">{formatMoney(s.price)}</td>
                   <td>{s.payment_mode}</td>
+                  <td>
+                    <button className="btn btn-danger" onClick={() => deleteSale(s.id)}>
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
-
               {filteredExpenses.map((e) => (
                 <tr key={"e" + e.id}>
                   <td>Expense</td>
                   <td>{e.description}</td>
                   <td className="monofont faded-red">{formatMoney(e.amount)}</td>
                   <td>—</td>
+                  <td>
+                    <button className="btn btn-danger" onClick={() => deleteExpense(e.id)}>
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
-
               {filteredRemittances.map((r) => (
                 <tr key={"r" + r.id}>
                   <td>Remittance</td>
                   <td>{r.note}</td>
                   <td className="monofont faded-red">-{formatMoney(r.amount)}</td>
                   <td>Cash Out</td>
+                  <td>
+                    <button className="btn btn-danger" onClick={() => deleteRemittance(r.id)}>
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
-
               {filteredSales.length === 0 &&
                 filteredExpenses.length === 0 &&
                 filteredRemittances.length === 0 && (
                   <tr>
-                    <td colSpan="4">No transactions found</td>
+                    <td colSpan="5">No transactions found</td>
                   </tr>
                 )}
             </tbody>
@@ -288,9 +295,7 @@ export default function Transactions() {
             <p>Cash Given to Boss: {formatMoney(totalRemittances)}</p>
             <p>
               Cash On Hand:{" "}
-              <span
-                className={`monofont ${cashOnHand >= 0 ? "faded-green" : "faded-red"}`}
-              >
+              <span className={`monofont ${cashOnHand >= 0 ? "faded-green" : "faded-red"}`}>
                 {formatMoney(cashOnHand)}
               </span>
             </p>
@@ -311,12 +316,10 @@ function ExpenseForm({ onSave }) {
         <label>Description</label>
         <input value={desc} onChange={(e) => setDesc(e.target.value)} />
       </div>
-
       <div className="form-group">
         <label>Amount</label>
         <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
       </div>
-
       <button
         className="btn"
         onClick={() => {
