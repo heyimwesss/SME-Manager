@@ -6,357 +6,327 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
 export default function Transactions() {
-
   const { activeAccount } = useAccount();
   const navigate = useNavigate();
 
-  useEffect(()=>{
-    if(!activeAccount) navigate("/accounts")
-  },[activeAccount,navigate])
+  // Redirect if no active account
+  useEffect(() => {
+    if (!activeAccount) navigate("/accounts");
+  }, [activeAccount, navigate]);
 
   // SALES FORM
-  const [item,setItem] = useState("")
-  const [price,setPrice] = useState("")
-  const [payment,setPayment] = useState("Cash")
+  const [item, setItem] = useState("");
+  const [price, setPrice] = useState("");
+  const [payment, setPayment] = useState("Cash");
 
   // REMITTANCE FORM
-  const [remitAmount,setRemitAmount] = useState("")
-  const [remitNote,setRemitNote] = useState("Given to boss")
+  const [remitAmount, setRemitAmount] = useState("");
+  const [remitNote, setRemitNote] = useState("Given to boss");
 
   // DATA STATES
-  const [sales,setSales] = useState([])
-  const [expenses,setExpenses] = useState([])
-  const [remittances,setRemittances] = useState([])
+  const [sales, setSales] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [remittances, setRemittances] = useState([]);
 
-  const [view,setView] = useState("today")
+  // VIEW
+  const [view, setView] = useState("today");
 
-  const todayStr = new Date().toISOString().split("T")[0]
-  const yesterdayStr = new Date(Date.now()-86400000).toISOString().split("T")[0]
+  const todayStr = new Date().toISOString().split("T")[0];
+  const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split("T")[0];
 
-  useEffect(()=>{
-    if(activeAccount){
-      fetchSales()
-      fetchExpenses()
-      fetchRemittances()
+  // Fetch data on account load
+  useEffect(() => {
+    if (activeAccount) {
+      fetchSales();
+      fetchExpenses();
+      fetchRemittances();
     }
-  },[activeAccount])
+  }, [activeAccount]);
 
-  async function fetchSales(){
-    const {data} = await supabase
-    .from("sales")
-    .select("*")
-    .eq("account_id",activeAccount.id)
-    .order("sold_at",{ascending:false})
-
-    setSales(data || [])
+  async function fetchSales() {
+    const { data } = await supabase
+      .from("sales")
+      .select("*")
+      .eq("account_id", activeAccount.id)
+      .order("sold_at", { ascending: false });
+    setSales(data || []);
   }
 
-  async function fetchExpenses(){
-    const {data} = await supabase
-    .from("expenses")
-    .select("*")
-    .eq("account_id",activeAccount.id)
-    .order("expense_date",{ascending:false})
-
-    setExpenses(data || [])
+  async function fetchExpenses() {
+    const { data } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("account_id", activeAccount.id)
+      .order("expense_date", { ascending: false });
+    setExpenses(data || []);
   }
 
-  async function fetchRemittances(){
-    const {data} = await supabase
-    .from("cash_remittances")
-    .select("*")
-    .eq("account_id",activeAccount.id)
-    .order("created_at",{ascending:false})
-
-    setRemittances(data || [])
+  async function fetchRemittances() {
+    const { data } = await supabase
+      .from("cash_remittances")
+      .select("*")
+      .eq("account_id", activeAccount.id)
+      .order("created_at", { ascending: false });
+    setRemittances(data || []);
   }
 
-  // FILTER SALES
-  const filteredSales = sales.filter((s)=>{
-    const date = s.sold_at.split("T")[0]
-    if(view==="today") return date===todayStr
-    if(view==="yesterday") return date===yesterdayStr
-    return date<yesterdayStr
-  })
+  // FILTERS
+  const filteredSales = sales.filter((s) => {
+    const date = s.sold_at.split("T")[0];
+    if (view === "today") return date === todayStr;
+    if (view === "yesterday") return date === yesterdayStr;
+    return date < yesterdayStr;
+  });
 
-  const filteredExpenses = expenses.filter((e)=>{
-    const date = e.expense_date.split("T")[0]
-    if(view==="today") return date===todayStr
-    if(view==="yesterday") return date===yesterdayStr
-    return date<yesterdayStr
-  })
+  const filteredExpenses = expenses.filter((e) => {
+    const date = e.expense_date.split("T")[0];
+    if (view === "today") return date === todayStr;
+    if (view === "yesterday") return date === yesterdayStr;
+    return date < yesterdayStr;
+  });
 
-  const filteredRemittances = remittances.filter((r)=>{
-    const date = r.created_at.split("T")[0]
-    if(view==="today") return date===todayStr
-    if(view==="yesterday") return date===yesterdayStr
-    return date<yesterdayStr
-  })
+  const filteredRemittances = remittances.filter((r) => {
+    const date = r.created_at.split("T")[0];
+    if (view === "today") return date === todayStr;
+    if (view === "yesterday") return date === yesterdayStr;
+    return date < yesterdayStr;
+  });
 
   // TOTALS
   const totalCashSales = filteredSales.reduce(
-    (sum,s)=> s.payment_mode==="Cash" ? sum + Number(s.price) : sum ,0
-  )
+    (sum, s) => (s.payment_mode === "Cash" ? sum + Number(s.price) : sum),
+    0
+  );
+  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const totalRemittances = filteredRemittances.reduce((sum, r) => sum + Number(r.amount), 0);
 
-  const totalExpenses = filteredExpenses.reduce(
-    (sum,e)=> sum + Number(e.amount),0
-  )
+  const cashOnHand = totalCashSales - totalExpenses - totalRemittances;
 
-  const totalRemittances = filteredRemittances.reduce(
-    (sum,r)=> sum + Number(r.amount),0
-  )
-
-  const cashOnHand = totalCashSales - totalExpenses - totalRemittances
-
-  if(!activeAccount) return null
+  if (!activeAccount) return null;
 
   return (
-<>
-<Navbar/>
+    <>
+      <Navbar />
 
-<div className="page">
+      <div className="page">
+        <h1>Transactions - {activeAccount.name}</h1>
 
-<h1>Transactions - {activeAccount.name}</h1>
+        {/* ---------- SALE FORM ---------- */}
+        <div className="form-container">
+          <div className="form-group">
+            <label>Item Name</label>
+            <input value={item} onChange={(e) => setItem(e.target.value)} />
+          </div>
 
-{/* SALES FORM */}
-<div className="form-container">
+          <div className="form-group">
+            <label>Price</label>
+            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
+          </div>
 
-<div className="form-group">
-<label>Item Name</label>
-<input value={item} onChange={e=>setItem(e.target.value)} />
-</div>
+          <div className="form-group">
+            <label>Payment Mode</label>
+            <select value={payment} onChange={(e) => setPayment(e.target.value)}>
+              <option>Cash</option>
+              <option>Airtel Money</option>
+              <option>Mpamba</option>
+              <option>Bank</option>
+            </select>
+          </div>
 
-<div className="form-group">
-<label>Price</label>
-<input type="number" value={price} onChange={e=>setPrice(e.target.value)} />
-</div>
+          <button
+            className="btn"
+            onClick={async () => {
+              if (!item || !price) return alert("Fill all fields");
 
-<div className="form-group">
-<label>Payment Mode</label>
-<select value={payment} onChange={e=>setPayment(e.target.value)}>
-<option>Cash</option>
-<option>Airtel Money</option>
-<option>Mpamba</option>
-<option>Bank</option>
-</select>
-</div>
+              const { data, error } = await supabase
+                .from("sales")
+                .insert([{ item_name: item, price, payment_mode: payment, account_id: activeAccount.id }])
+                .select();
 
-<button className="btn" onClick={async()=>{
+              if (error) return alert("Error saving sale");
 
-if(!item || !price) return alert("Fill all fields")
+              setSales([data[0], ...sales]);
+              setItem("");
+              setPrice("");
+              setPayment("Cash");
+            }}
+          >
+            Save Sale
+          </button>
+        </div>
 
-const {data,error} = await supabase
-.from("sales")
-.insert([{
-item_name:item,
-price,
-payment_mode:payment,
-account_id:activeAccount.id
-}])
-.select()
+        {/* ---------- EXPENSE FORM ---------- */}
+        <div className="form-container" style={{ marginTop: 30 }}>
+          <h2>Add Expense</h2>
+          <ExpenseForm
+            onSave={async (desc, amount) => {
+              if (!desc || !amount) return alert("Fill all fields");
 
-if(error) return alert("Error saving sale")
+              const { data, error } = await supabase
+                .from("expenses")
+                .insert([{ description: desc, amount, account_id: activeAccount.id }])
+                .select();
 
-setSales([data[0],...sales])
+              if (error) return alert("Error saving expense");
 
-setItem("")
-setPrice("")
-setPayment("Cash")
+              setExpenses([data[0], ...expenses]);
+            }}
+          />
+        </div>
 
-}}>
-Save Sale
-</button>
+        {/* ---------- CASH REMITTANCE ---------- */}
+        <div className="form-container" style={{ marginTop: 30 }}>
+          <h2>Give Cash to Boss</h2>
 
-</div>
+          <p>
+            Available Cash:{" "}
+            <span className="monofont faded-green">{formatMoney(cashOnHand)}</span>
+          </p>
 
+          <div className="form-group">
+            <label>Amount</label>
+            <input
+              type="number"
+              value={remitAmount}
+              max={cashOnHand}
+              onChange={(e) => setRemitAmount(e.target.value)}
+              placeholder="Enter amount to give"
+            />
+          </div>
 
-{/* EXPENSE FORM */}
-<div className="form-container" style={{marginTop:30}}>
+          <div className="form-group">
+            <label>Note</label>
+            <input value={remitNote} onChange={(e) => setRemitNote(e.target.value)} />
+          </div>
 
-<h2>Add Expense</h2>
+          <button
+            className="btn"
+            disabled={cashOnHand <= 0 || !remitAmount}
+            onClick={async () => {
+              if (Number(remitAmount) > cashOnHand) {
+                return alert("Cannot give more cash than available.");
+              }
 
-<ExpenseForm onSave={async(desc,amount)=>{
+              const { data, error } = await supabase
+                .from("cash_remittances")
+                .insert([{ amount: remitAmount, note: remitNote, account_id: activeAccount.id }])
+                .select();
 
-if(!desc || !amount) return alert("Fill all fields")
+              if (error) return alert(error.message);
 
-const {data,error} = await supabase
-.from("expenses")
-.insert([{
-description:desc,
-amount,
-account_id:activeAccount.id
-}])
-.select()
+              setRemittances([data[0], ...remittances]);
+              setRemitAmount("");
+            }}
+          >
+            Record Cash Given
+          </button>
+        </div>
 
-if(error) return alert("Error saving expense")
+        {/* ---------- TRANSACTIONS TABLE ---------- */}
+        <div className="table-container" style={{ marginTop: 30 }}>
+          <h2>Transactions</h2>
 
-setExpenses([data[0],...expenses])
+          <div className="form-group">
+            <label>View</label>
+            <select value={view} onChange={(e) => setView(e.target.value)}>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="older">Older</option>
+            </select>
+          </div>
 
-}}/>
+          <table className="transactions-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Payment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSales.map((s) => (
+                <tr key={"s" + s.id}>
+                  <td>Sale</td>
+                  <td>{s.item_name}</td>
+                  <td className="monofont faded-green">{formatMoney(s.price)}</td>
+                  <td>{s.payment_mode}</td>
+                </tr>
+              ))}
 
-</div>
+              {filteredExpenses.map((e) => (
+                <tr key={"e" + e.id}>
+                  <td>Expense</td>
+                  <td>{e.description}</td>
+                  <td className="monofont faded-red">{formatMoney(e.amount)}</td>
+                  <td>—</td>
+                </tr>
+              ))}
 
+              {filteredRemittances.map((r) => (
+                <tr key={"r" + r.id}>
+                  <td>Remittance</td>
+                  <td>{r.note}</td>
+                  <td className="monofont faded-red">-{formatMoney(r.amount)}</td>
+                  <td>Cash Out</td>
+                </tr>
+              ))}
 
-{/* CASH REMITTANCE */}
-<div className="form-container" style={{marginTop:30}}>
+              {filteredSales.length === 0 &&
+                filteredExpenses.length === 0 &&
+                filteredRemittances.length === 0 && (
+                  <tr>
+                    <td colSpan="4">No transactions found</td>
+                  </tr>
+                )}
+            </tbody>
+          </table>
 
-<h2>Give Cash to Boss</h2>
-
-<div className="form-group">
-<label>Amount</label>
-<input
-type="number"
-value={remitAmount}
-onChange={e=>setRemitAmount(e.target.value)}
-/>
-</div>
-
-<div className="form-group">
-<label>Note</label>
-<input
-value={remitNote}
-onChange={e=>setRemitNote(e.target.value)}
-/>
-</div>
-
-<button className="btn" onClick={async()=>{
-
-if(!remitAmount) return alert("Enter amount")
-
-const {data,error} = await supabase
-.from("cash_remittances")
-.insert([{
-amount:remitAmount,
-note:remitNote,
-account_id:activeAccount.id
-}])
-.select()
-
-if(error) return alert("Error saving remittance")
-
-setRemittances([data[0],...remittances])
-
-setRemitAmount("")
-
-}}>
-Record Cash Given
-</button>
-
-</div>
-
-
-{/* TRANSACTIONS TABLE */}
-
-<div className="table-container" style={{marginTop:30}}>
-
-<h2>Transactions</h2>
-
-<div className="form-group">
-<label>View</label>
-<select value={view} onChange={e=>setView(e.target.value)}>
-<option value="today">Today</option>
-<option value="yesterday">Yesterday</option>
-<option value="older">Older</option>
-</select>
-</div>
-
-<table className="transactions-table">
-
-<thead>
-<tr>
-<th>Type</th>
-<th>Description</th>
-<th>Amount</th>
-<th>Payment</th>
-</tr>
-</thead>
-
-<tbody>
-
-{filteredSales.map(s=>(
-<tr key={"s"+s.id}>
-<td>Sale</td>
-<td>{s.item_name}</td>
-<td className="monofont faded-green">{formatMoney(s.price)}</td>
-<td>{s.payment_mode}</td>
-</tr>
-))}
-
-{filteredExpenses.map(e=>(
-<tr key={"e"+e.id}>
-<td>Expense</td>
-<td>{e.description}</td>
-<td className="monofont faded-red">{formatMoney(e.amount)}</td>
-<td>—</td>
-</tr>
-))}
-
-{filteredRemittances.map(r=>(
-<tr key={"r"+r.id}>
-<td>Remittance</td>
-<td>{r.note}</td>
-<td className="monofont faded-red">
--{formatMoney(r.amount)}
-</td>
-<td>Cash Out</td>
-</tr>
-))}
-
-</tbody>
-
-</table>
-
-
-<div className="summary">
-
-<p>Total Cash Sales: {formatMoney(totalCashSales)}</p>
-<p>Total Expenses: {formatMoney(totalExpenses)}</p>
-<p>Cash Given to Boss: {formatMoney(totalRemittances)}</p>
-
-<p>
-Cash On Hand:
-<span className="monofont">
-{formatMoney(cashOnHand)}
-</span>
-</p>
-
-</div>
-
-</div>
-
-</div>
-</>
-)
-
+          <div className="summary">
+            <p>Total Cash Sales: {formatMoney(totalCashSales)}</p>
+            <p>Total Expenses: {formatMoney(totalExpenses)}</p>
+            <p>Cash Given to Boss: {formatMoney(totalRemittances)}</p>
+            <p>
+              Cash On Hand:{" "}
+              <span
+                className={`monofont ${cashOnHand >= 0 ? "faded-green" : "faded-red"}`}
+              >
+                {formatMoney(cashOnHand)}
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 }
 
-function ExpenseForm({onSave}){
+function ExpenseForm({ onSave }) {
+  const [desc, setDesc] = useState("");
+  const [amount, setAmount] = useState("");
 
-const [desc,setDesc] = useState("")
-const [amount,setAmount] = useState("")
+  return (
+    <>
+      <div className="form-group">
+        <label>Description</label>
+        <input value={desc} onChange={(e) => setDesc(e.target.value)} />
+      </div>
 
-return (
-<>
-<div className="form-group">
-<label>Description</label>
-<input value={desc} onChange={e=>setDesc(e.target.value)} />
-</div>
+      <div className="form-group">
+        <label>Amount</label>
+        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+      </div>
 
-<div className="form-group">
-<label>Amount</label>
-<input type="number" value={amount} onChange={e=>setAmount(e.target.value)} />
-</div>
-
-<button className="btn" onClick={()=>{
-
-onSave(desc,amount)
-
-setDesc("")
-setAmount("")
-
-}}>
-Save Expense
-</button>
-</>
-)
+      <button
+        className="btn"
+        onClick={() => {
+          onSave(desc, amount);
+          setDesc("");
+          setAmount("");
+        }}
+      >
+        Save Expense
+      </button>
+    </>
+  );
 }
