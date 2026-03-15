@@ -8,7 +8,6 @@ import Navbar from "../components/Navbar";
 
 export default function Reports() {
   const { activeAccount } = useAccount();
-
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [remittances, setRemittances] = useState([]);
@@ -18,11 +17,11 @@ export default function Reports() {
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
 
-  // Week: Monday to Sunday
+  // Current week: Sunday to Saturday
   const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - today.getDay() + 1);
+  weekStart.setDate(today.getDate() - today.getDay()); // Sunday
   const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setDate(weekStart.getDate() + 6); // Saturday
   const weekStartStr = weekStart.toISOString().split("T")[0];
   const weekEndStr = weekEnd.toISOString().split("T")[0];
 
@@ -115,7 +114,8 @@ export default function Reports() {
     reportRange = `${new Date(weekStartStr).toLocaleDateString()} to ${new Date(
       weekEndStr
     ).toLocaleDateString()}`;
-  else if (view === "monthly") reportRange = `${today.toLocaleString("default", { month: "long" })} ${today.getFullYear()}`;
+  else if (view === "monthly")
+    reportRange = `${today.toLocaleString("default", { month: "long" })} ${today.getFullYear()}`;
 
   const saveAsImage = () => {
     if (reportRef.current) {
@@ -144,21 +144,35 @@ export default function Reports() {
 
         <div ref={reportRef} className="report-card">
           <h2>{view.charAt(0).toUpperCase() + view.slice(1)} Report</h2>
-          <p><strong>Period:</strong> {reportRange}</p>
+          <p>
+            <strong>Period:</strong> {reportRange}
+          </p>
 
           <div className="summary">
-            <p>Total Sales: <span className="monofont">{formatMoney(totalSales)}</span></p>
-            <p>Total Cash Sales: <span className="monofont">{formatMoney(totalCashSales)}</span></p>
-            <p>Total Expenses: <span className="monofont faded-red">{formatMoney(totalExpenses)}</span></p>
-            <p>Total Cash Given to Boss: <span className="monofont faded-red">{formatMoney(totalRemittances)}</span></p>
-            <p>Profit: <span className="monofont faded-green">{formatMoney(profit)}</span></p>
+            <p>
+              Total Sales: <span className="monofont">{formatMoney(totalSales)}</span>
+            </p>
+            <p>
+              Total Cash Sales: <span className="monofont">{formatMoney(totalCashSales)}</span>
+            </p>
+            <p>
+              Total Expenses: <span className="monofont faded-red">{formatMoney(totalExpenses)}</span>
+            </p>
+            <p>
+              Total Cash Given to Boss: <span className="monofont faded-red">{formatMoney(totalRemittances)}</span>
+            </p>
+            <p>
+              Profit: <span className="monofont faded-green">{formatMoney(profit)}</span>
+            </p>
           </div>
 
           <h3>Payment Breakdown</h3>
           <ul>
             {Object.entries(paymentBreakdown).map(([mode, value]) => (
               <li key={mode}>
-                <span className="monofont">{mode}: {formatMoney(value)}</span>
+                <span className="monofont">
+                  {mode}: {formatMoney(value)}
+                </span>
               </li>
             ))}
           </ul>
