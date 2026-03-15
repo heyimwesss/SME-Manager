@@ -8,6 +8,7 @@ export default function Dashboard() {
   const { activeAccount } = useAccount();
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState(0);
+  const [remittances, setRemittances] = useState(0);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -15,9 +16,11 @@ export default function Dashboard() {
     if (activeAccount) {
       getSales();
       getExpenses();
+      getRemittances();
     }
   }, [activeAccount]);
 
+  // Fetch today's sales
   async function getSales() {
     const { data } = await supabase
       .from("sales")
@@ -29,6 +32,7 @@ export default function Dashboard() {
     setSales(data || []);
   }
 
+  // Fetch today's expenses
   async function getExpenses() {
     const { data } = await supabase
       .from("expenses")
@@ -41,20 +45,32 @@ export default function Dashboard() {
     setExpenses(total);
   }
 
+  // Fetch today's cash remittances
+  async function getRemittances() {
+    const { data } = await supabase
+      .from("cash_remittances")
+      .select("*")
+      .eq("account_id", activeAccount.id)
+      .gte("created_at", today);
+
+    let total = 0;
+    data?.forEach(r => (total += Number(r.amount)));
+    setRemittances(total);
+  }
+
   const totalSales = sales.reduce((sum, s) => sum + Number(s.price), 0);
   const cashSales = sales.reduce(
     (sum, s) => (s.payment_mode === "Cash" ? sum + Number(s.price) : sum),
     0
   );
-  const cashOnHand = cashSales - expenses;
+
+  // Cash on hand includes remittances
+  const cashOnHand = cashSales - expenses - remittances;
 
   if (!activeAccount) return <p>Loading account...</p>;
 
   return (
-    
     <div className="page">
-
-      {/* ---------- NAVBAR ---------- */}
       <Navbar />
       <h1>Dashboard</h1>
 
@@ -70,9 +86,25 @@ export default function Dashboard() {
           <p className="amount">{formatMoney(expenses)}</p>
         </div>
 
+        <div className="card card-remittance">
+          <h3>Cash Given to Boss</h3>
+          <p className="amount">{formatMoney(remittances)}</p>
+        </div>
+
         <div className="card card-profit">
           <h3>Profit Today</h3>
           <p className="amount">{formatMoney(totalSales - expenses)}</p>
+        </div>
+
+        <div className="card card-cash-on-hand">
+          <h3>Cash On Hand</h3>
+          <p
+            className={`amount ${
+              cashOnHand >= 0 ? "faded-green" : "faded-red"
+            }`}
+          >
+            {formatMoney(cashOnHand)}
+          </p>
         </div>
       </div>
 
@@ -83,8 +115,8 @@ export default function Dashboard() {
         <table className="transactions-table">
           <thead>
             <tr>
-              <th>Item</th>
-              <th>Price</th>
+              <th>Item / Description</th>
+              <th>Amount</th>
               <th>Payment</th>
             </tr>
           </thead>
@@ -126,7 +158,17 @@ export default function Dashboard() {
         <div className="summary">
           <p>Total Cash Sales: {formatMoney(cashSales)}</p>
           <p>Total Expenses: {formatMoney(expenses)}</p>
-          <p>Cash On Hand: {formatMoney(cashOnHand)}</p>
+          <p>Cash Given to Boss: {formatMoney(remittances)}</p>
+          <p>
+            Cash On Hand:{" "}
+            <span
+              className={`monofont ${
+                cashOnHand >= 0 ? "faded-green" : "faded-red"
+              }`}
+            >
+              {formatMoney(cashOnHand)}
+            </span>
+          </p>
         </div>
       </div>
     </div>
