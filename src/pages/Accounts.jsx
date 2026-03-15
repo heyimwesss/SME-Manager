@@ -4,29 +4,39 @@ import { supabase } from "../services/supabase";
 import { useAccount } from "../context/AccountContext";
 import bcrypt from "bcryptjs";
 import Navbar from "../components/Navbar";
-import { useNavigate } from "react-router-dom"; // <-- import this
+import { useNavigate } from "react-router-dom";
 
 export default function Accounts() {
   const { activeAccount, login } = useAccount();
-  const navigate = useNavigate(); // <-- hook for navigation
+  const navigate = useNavigate();
 
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Fetch all accounts
+  // Redirect if already logged in
+  useEffect(() => {
+    if (activeAccount) {
+      navigate("/dashboard");
+    }
+  }, [activeAccount, navigate]);
+
+  // Fetch accounts
   useEffect(() => {
     fetchAccounts();
   }, []);
 
   async function fetchAccounts() {
-    const { data, error } = await supabase.from("accounts").select("*").order("name");
+    const { data, error } = await supabase
+      .from("accounts")
+      .select("*")
+      .order("name");
+
     if (error) console.log(error);
     else setAccounts(data || []);
   }
 
-  // Login to account
   async function handleLogin() {
     if (!selectedAccount || !loginPassword) {
       setErrorMsg("Select an account and enter password");
@@ -45,16 +55,15 @@ export default function Accounts() {
     }
 
     const match = bcrypt.compareSync(loginPassword, data.password_hash);
+
     if (match) {
-      login(data);          // set active account
+      login(data);
       setErrorMsg("");
-      navigate("/dashboard"); // <-- redirect to dashboard
+      navigate("/dashboard");
     } else {
       setErrorMsg("Incorrect password");
     }
   }
-
-  if (activeAccount) return <p>Already logged in as {activeAccount.name}</p>;
 
   return (
     <div className="page">
@@ -63,18 +72,24 @@ export default function Accounts() {
 
       {errorMsg && <p style={{ color: "red" }}>{errorMsg}</p>}
 
-      {/* Login */}
       <div className="form-container" style={{ marginTop: "30px" }}>
         <h2>Login</h2>
+
         <div className="form-group">
           <label>Select Account</label>
-          <select value={selectedAccount} onChange={(e) => setSelectedAccount(e.target.value)}>
+          <select
+            value={selectedAccount}
+            onChange={(e) => setSelectedAccount(e.target.value)}
+          >
             <option value="">--Select--</option>
             {accounts.map((acc) => (
-              <option key={acc.id} value={acc.id}>{acc.name}</option>
+              <option key={acc.id} value={acc.id}>
+                {acc.name}
+              </option>
             ))}
           </select>
         </div>
+
         <div className="form-group">
           <label>Password</label>
           <input
@@ -84,7 +99,10 @@ export default function Accounts() {
             placeholder="Password"
           />
         </div>
-        <button className="btn" onClick={handleLogin}>Login</button>
+
+        <button className="btn" onClick={handleLogin}>
+          Login
+        </button>
       </div>
     </div>
   );
