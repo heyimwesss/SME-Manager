@@ -22,10 +22,15 @@ export default function Transactions() {
   const [remitAmount, setRemitAmount] = useState("");
   const [remitNote, setRemitNote] = useState("Given to boss");
 
+  // BANK EXPENSE FORM
+  const [bankDesc, setBankDesc] = useState("");
+  const [bankAmount, setBankAmount] = useState("");
+
   // DATA STATES
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [remittances, setRemittances] = useState([]);
+  const [bankExpenses, setBankExpenses] = useState([]);
 
   const [view, setView] = useState("today");
   const todayStr = new Date().toISOString().split("T")[0];
@@ -36,6 +41,7 @@ export default function Transactions() {
       fetchSales();
       fetchExpenses();
       fetchRemittances();
+      fetchBankExpenses();
     }
   }, [activeAccount]);
 
@@ -66,6 +72,15 @@ export default function Transactions() {
     setRemittances(data || []);
   }
 
+  async function fetchBankExpenses() {
+    const { data } = await supabase
+      .from("bank_expenses")
+      .select("*")
+      .eq("account_id", activeAccount.id)
+      .order("created_at", { ascending: false });
+    setBankExpenses(data || []);
+  }
+
   // DELETE HANDLERS
   async function deleteSale(id) {
     await supabase.from("sales").delete().eq("id", id);
@@ -80,6 +95,11 @@ export default function Transactions() {
   async function deleteRemittance(id) {
     await supabase.from("cash_remittances").delete().eq("id", id);
     setRemittances(remittances.filter((r) => r.id !== id));
+  }
+
+  async function deleteBankExpense(id) {
+    await supabase.from("bank_expenses").delete().eq("id", id);
+    setBankExpenses(bankExpenses.filter((b) => b.id !== id));
   }
 
   // FILTERS
@@ -104,6 +124,13 @@ export default function Transactions() {
     return date < yesterdayStr;
   });
 
+  const filteredBankExpenses = bankExpenses.filter((b) => {
+    const date = b.created_at.split("T")[0];
+    if (view === "today") return date === todayStr;
+    if (view === "yesterday") return date === yesterdayStr;
+    return date < yesterdayStr;
+  });
+
   // TOTALS
   const totalCashSales = filteredSales.reduce(
     (sum, s) => (s.payment_mode === "Cash" ? sum + Number(s.price) : sum),
@@ -122,7 +149,7 @@ export default function Transactions() {
       <div className="page">
         <h1>Transactions - {activeAccount.name}</h1>
 
-        {/* ---------- SALE FORM ---------- */}
+        {/* SALE FORM */}
         <div className="form-container">
           <div className="form-group">
             <label>Item Name</label>
@@ -160,7 +187,7 @@ export default function Transactions() {
           </button>
         </div>
 
-        {/* ---------- EXPENSE FORM ---------- */}
+        {/* EXPENSE FORM */}
         <div className="form-container" style={{ marginTop: 30 }}>
           <h2>Add Expense</h2>
           <ExpenseForm
@@ -176,7 +203,39 @@ export default function Transactions() {
           />
         </div>
 
-        {/* ---------- CASH REMITTANCE ---------- */}
+        {/* BANK EXPENSE FORM */}
+        <div className="form-container" style={{ marginTop: 30 }}>
+          <h2>Bank Expense</h2>
+          <div className="form-group">
+            <label>Description</label>
+            <input value={bankDesc} onChange={(e) => setBankDesc(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>Amount</label>
+            <input type="number" value={bankAmount} onChange={(e) => setBankAmount(e.target.value)} />
+          </div>
+          <button
+            className="btn"
+            onClick={async () => {
+              if (!bankDesc || !bankAmount) return alert("Fill all fields");
+
+              const { data, error } = await supabase
+                .from("bank_expenses")
+                .insert([{ description: bankDesc, amount: bankAmount, account_id: activeAccount.id }])
+                .select();
+
+              if (error) return alert("Error saving bank expense");
+
+              setBankExpenses([data[0], ...bankExpenses]);
+              setBankDesc("");
+              setBankAmount("");
+            }}
+          >
+            Save Bank Expense
+          </button>
+        </div>
+
+        {/* CASH REMITTANCE */}
         <div className="form-container" style={{ marginTop: 30 }}>
           <h2>Give Cash to Boss</h2>
           <p>
@@ -190,7 +249,6 @@ export default function Transactions() {
               value={remitAmount}
               max={cashOnHand}
               onChange={(e) => setRemitAmount(e.target.value)}
-              placeholder="Enter amount to give"
             />
           </div>
           <div className="form-group">
@@ -204,11 +262,14 @@ export default function Transactions() {
               if (Number(remitAmount) > cashOnHand) {
                 return alert("Cannot give more cash than available.");
               }
+
               const { data, error } = await supabase
                 .from("cash_remittances")
                 .insert([{ amount: remitAmount, note: remitNote, account_id: activeAccount.id }])
                 .select();
+
               if (error) return alert(error.message);
+
               setRemittances([data[0], ...remittances]);
               setRemitAmount("");
             }}
@@ -217,9 +278,10 @@ export default function Transactions() {
           </button>
         </div>
 
-        {/* ---------- TRANSACTIONS TABLE ---------- */}
+        {/* TRANSACTIONS TABLE */}
         <div className="table-container" style={{ marginTop: 30 }}>
           <h2>Transactions</h2>
+
           <div className="form-group">
             <label>View</label>
             <select value={view} onChange={(e) => setView(e.target.value)}>
@@ -239,6 +301,7 @@ export default function Transactions() {
                 <th>Action</th>
               </tr>
             </thead>
+
             <tbody>
               {filteredSales.map((s) => (
                 <tr key={"s" + s.id}>
@@ -253,6 +316,7 @@ export default function Transactions() {
                   </td>
                 </tr>
               ))}
+
               {filteredExpenses.map((e) => (
                 <tr key={"e" + e.id}>
                   <td>Expense</td>
@@ -266,6 +330,21 @@ export default function Transactions() {
                   </td>
                 </tr>
               ))}
+
+              {filteredBankExpenses.map((b) => (
+                <tr key={"b" + b.id}>
+                  <td>Bank Expense</td>
+                  <td>{b.description}</td>
+                  <td className="monofont faded-red">{formatMoney(b.amount)}</td>
+                  <td>Bank</td>
+                  <td>
+                    <button className="btn btn-danger" onClick={() => deleteBankExpense(b.id)}>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
               {filteredRemittances.map((r) => (
                 <tr key={"r" + r.id}>
                   <td>Remittance</td>
@@ -279,9 +358,11 @@ export default function Transactions() {
                   </td>
                 </tr>
               ))}
+
               {filteredSales.length === 0 &&
                 filteredExpenses.length === 0 &&
-                filteredRemittances.length === 0 && (
+                filteredRemittances.length === 0 &&
+                filteredBankExpenses.length === 0 && (
                   <tr>
                     <td colSpan="5">No transactions found</td>
                   </tr>
@@ -316,10 +397,12 @@ function ExpenseForm({ onSave }) {
         <label>Description</label>
         <input value={desc} onChange={(e) => setDesc(e.target.value)} />
       </div>
+
       <div className="form-group">
         <label>Amount</label>
         <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
       </div>
+
       <button
         className="btn"
         onClick={() => {

@@ -162,7 +162,7 @@ export default function Reports() {
               Total Cash Given to Boss: <span className="monofont faded-red">{formatMoney(totalRemittances)}</span>
             </p>
             <p>
-              Profit: <span className="monofont faded-green">{formatMoney(profit)}</span>
+              Balance: <span className="monofont faded-green">{formatMoney(profit)}</span>
             </p>
           </div>
 
