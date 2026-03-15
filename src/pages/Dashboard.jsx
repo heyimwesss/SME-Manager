@@ -6,9 +6,11 @@ import { useAccount } from "../context/AccountContext";
 
 export default function Dashboard() {
   const { activeAccount } = useAccount();
+
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState(0);
   const [remittances, setRemittances] = useState(0);
+  const [bankExpenses, setBankExpenses] = useState(0);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -17,10 +19,11 @@ export default function Dashboard() {
       getSales();
       getExpenses();
       getRemittances();
+      getBankExpenses();
     }
   }, [activeAccount]);
 
-  // Fetch today's sales
+  // SALES
   async function getSales() {
     const { data } = await supabase
       .from("sales")
@@ -32,7 +35,7 @@ export default function Dashboard() {
     setSales(data || []);
   }
 
-  // Fetch today's expenses
+  // CASH EXPENSES
   async function getExpenses() {
     const { data } = await supabase
       .from("expenses")
@@ -45,7 +48,7 @@ export default function Dashboard() {
     setExpenses(total);
   }
 
-  // Fetch today's cash remittances
+  // CASH REMITTANCES
   async function getRemittances() {
     const { data } = await supabase
       .from("cash_remittances")
@@ -58,14 +61,36 @@ export default function Dashboard() {
     setRemittances(total);
   }
 
+  // BANK EXPENSES
+  async function getBankExpenses() {
+    const { data } = await supabase
+      .from("bank_expenses")
+      .select("*")
+      .eq("account_id", activeAccount.id)
+      .gte("created_at", today);
+
+    let total = 0;
+    data?.forEach(b => (total += Number(b.amount)));
+    setBankExpenses(total);
+  }
+
+  // SALES TOTALS
   const totalSales = sales.reduce((sum, s) => sum + Number(s.price), 0);
+
   const cashSales = sales.reduce(
     (sum, s) => (s.payment_mode === "Cash" ? sum + Number(s.price) : sum),
     0
   );
 
-  // Cash on hand includes remittances
+  const bankSales = sales.reduce(
+    (sum, s) => (s.payment_mode === "Bank" ? sum + Number(s.price) : sum),
+    0
+  );
+
+  // BALANCES
   const cashOnHand = cashSales - expenses - remittances;
+  const bankBalance = bankSales - bankExpenses;
+  const totalBalance = cashOnHand + bankBalance;
 
   if (!activeAccount) return <p>Loading account...</p>;
 
@@ -74,8 +99,9 @@ export default function Dashboard() {
       <Navbar />
       <h1>Dashboard</h1>
 
-      {/* ---------- SUMMARY CARDS ---------- */}
+      {/* SUMMARY CARDS */}
       <div className="cards">
+
         <div className="card card-sales">
           <h3>Today's Sales</h3>
           <p className="amount">{formatMoney(totalSales)}</p>
@@ -91,6 +117,11 @@ export default function Dashboard() {
           <p className="amount">{formatMoney(remittances)}</p>
         </div>
 
+        <div className="card card-bank-expenses">
+          <h3>Bank Expenses</h3>
+          <p className="amount">{formatMoney(bankExpenses)}</p>
+        </div>
+
         <div className="card card-profit">
           <h3>Profit Today</h3>
           <p className="amount">{formatMoney(totalSales - expenses)}</p>
@@ -98,17 +129,28 @@ export default function Dashboard() {
 
         <div className="card card-cash-on-hand">
           <h3>Cash On Hand</h3>
-          <p
-            className={`amount ${
-              cashOnHand >= 0 ? "faded-green" : "faded-red"
-            }`}
-          >
+          <p className={`amount ${cashOnHand >= 0 ? "faded-green" : "faded-red"}`}>
             {formatMoney(cashOnHand)}
           </p>
         </div>
+
+        <div className="card card-bank-balance">
+          <h3>Bank Balance</h3>
+          <p className={`amount ${bankBalance >= 0 ? "faded-green" : "faded-red"}`}>
+            {formatMoney(bankBalance)}
+          </p>
+        </div>
+
+        <div className="card card-total-balance">
+          <h3>Total Balance</h3>
+          <p className={`amount ${totalBalance >= 0 ? "faded-green" : "faded-red"}`}>
+            {formatMoney(totalBalance)}
+          </p>
+        </div>
+
       </div>
 
-      {/* ---------- TRANSACTIONS TABLE ---------- */}
+      {/* TRANSACTIONS */}
       <div className="table-container">
         <h2>Today's Transactions</h2>
 
@@ -120,12 +162,14 @@ export default function Dashboard() {
               <th>Payment</th>
             </tr>
           </thead>
+
           <tbody>
             {sales.length === 0 && (
               <tr>
                 <td colSpan="3">No sales recorded today</td>
               </tr>
             )}
+
             {sales.map(sale => (
               <tr key={sale.id}>
                 <td>{sale.item_name}</td>
@@ -136,39 +180,47 @@ export default function Dashboard() {
           </tbody>
         </table>
 
-        {/* MOBILE CARDS */}
+        {/* MOBILE VIEW */}
         <div className="transactions-cards">
           {sales.map(sale => (
             <div className="transaction-card" key={"s" + sale.id}>
-              <p>
-                <strong>Item:</strong> {sale.item_name}
-              </p>
-              <p>
-                <strong>Price:</strong> {formatMoney(sale.price)}
-              </p>
-              <p>
-                <strong>Payment:</strong> {sale.payment_mode}
-              </p>
+              <p><strong>Item:</strong> {sale.item_name}</p>
+              <p><strong>Price:</strong> {formatMoney(sale.price)}</p>
+              <p><strong>Payment:</strong> {sale.payment_mode}</p>
             </div>
           ))}
           {sales.length === 0 && <p>No sales recorded today</p>}
         </div>
 
-        {/* DAILY SUMMARY */}
+        {/* SUMMARY */}
         <div className="summary">
           <p>Total Cash Sales: {formatMoney(cashSales)}</p>
+          <p>Total Bank Sales: {formatMoney(bankSales)}</p>
           <p>Total Expenses: {formatMoney(expenses)}</p>
           <p>Cash Given to Boss: {formatMoney(remittances)}</p>
+          <p>Bank Expenses: {formatMoney(bankExpenses)}</p>
+
           <p>
-            Cash On Hand:{" "}
-            <span
-              className={`monofont ${
-                cashOnHand >= 0 ? "faded-green" : "faded-red"
-              }`}
-            >
-              {formatMoney(cashOnHand)}
+            Cash On Hand:
+            <span className={`monofont ${cashOnHand >= 0 ? "faded-green" : "faded-red"}`}>
+              {" "} {formatMoney(cashOnHand)}
             </span>
           </p>
+
+          <p>
+            Bank Balance:
+            <span className={`monofont ${bankBalance >= 0 ? "faded-green" : "faded-red"}`}>
+              {" "} {formatMoney(bankBalance)}
+            </span>
+          </p>
+
+          <p>
+            Total Balance:
+            <span className={`monofont ${totalBalance >= 0 ? "faded-green" : "faded-red"}`}>
+              {" "} {formatMoney(totalBalance)}
+            </span>
+          </p>
+
         </div>
       </div>
     </div>
