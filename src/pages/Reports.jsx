@@ -1,4 +1,3 @@
-// src/pages/Reports.jsx
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../services/supabase";
 import { formatMoney } from "../utils/formatMoney";
@@ -12,6 +11,7 @@ export default function Reports() {
 
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [remittances, setRemittances] = useState([]);
   const [view, setView] = useState("daily"); // daily, weekly, monthly
   const reportRef = useRef();
 
@@ -36,6 +36,7 @@ export default function Reports() {
     if (activeAccount) {
       fetchSales();
       fetchExpenses();
+      fetchRemittances();
     }
   }, [activeAccount]);
 
@@ -57,6 +58,15 @@ export default function Reports() {
     setExpenses(data || []);
   }
 
+  async function fetchRemittances() {
+    const { data } = await supabase
+      .from("cash_remittances")
+      .select("*")
+      .eq("account_id", activeAccount.id)
+      .order("created_at", { ascending: true });
+    setRemittances(data || []);
+  }
+
   // Filter transactions based on view
   const filteredSales = sales.filter((s) => {
     const date = s.sold_at.split("T")[0];
@@ -74,6 +84,14 @@ export default function Reports() {
     return true;
   });
 
+  const filteredRemittances = remittances.filter((r) => {
+    const date = r.created_at.split("T")[0];
+    if (view === "daily") return date === todayStr;
+    if (view === "weekly") return date >= weekStartStr && date <= weekEndStr;
+    if (view === "monthly") return date >= monthStartStr && date <= monthEndStr;
+    return true;
+  });
+
   // Totals
   const totalSales = filteredSales.reduce((sum, s) => sum + Number(s.price), 0);
   const totalCashSales = filteredSales.reduce(
@@ -81,7 +99,8 @@ export default function Reports() {
     0
   );
   const totalExpenses = filteredExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
-  const profit = totalSales - totalExpenses;
+  const totalRemittances = filteredRemittances.reduce((sum, r) => sum + Number(r.amount), 0);
+  const profit = totalSales - totalExpenses - totalRemittances;
 
   // Payment breakdown
   const paymentBreakdown = filteredSales.reduce((acc, s) => {
@@ -89,16 +108,14 @@ export default function Reports() {
     return acc;
   }, {});
 
-  // Generate report range string
+  // Report range
   let reportRange = "";
-  if (view === "daily") {
-    reportRange = new Date(todayStr).toLocaleDateString();
-  } else if (view === "weekly") {
-    reportRange = `${new Date(weekStartStr).toLocaleDateString()} to ${new Date(weekEndStr).toLocaleDateString()}`;
-  } else if (view === "monthly") {
-    const monthName = today.toLocaleString("default", { month: "long" });
-    reportRange = `${monthName} ${today.getFullYear()}`;
-  }
+  if (view === "daily") reportRange = new Date(todayStr).toLocaleDateString();
+  else if (view === "weekly")
+    reportRange = `${new Date(weekStartStr).toLocaleDateString()} to ${new Date(
+      weekEndStr
+    ).toLocaleDateString()}`;
+  else if (view === "monthly") reportRange = `${today.toLocaleString("default", { month: "long" })} ${today.getFullYear()}`;
 
   const saveAsImage = () => {
     if (reportRef.current) {
@@ -133,6 +150,7 @@ export default function Reports() {
             <p>Total Sales: <span className="monofont">{formatMoney(totalSales)}</span></p>
             <p>Total Cash Sales: <span className="monofont">{formatMoney(totalCashSales)}</span></p>
             <p>Total Expenses: <span className="monofont faded-red">{formatMoney(totalExpenses)}</span></p>
+            <p>Total Cash Given to Boss: <span className="monofont faded-red">{formatMoney(totalRemittances)}</span></p>
             <p>Profit: <span className="monofont faded-green">{formatMoney(profit)}</span></p>
           </div>
 
@@ -145,46 +163,46 @@ export default function Reports() {
             ))}
           </ul>
 
-<h3>Transactions</h3>
-
-<div className="report-table-container">
-<table className="report-table">
-  <thead>
-    <tr>
-      <th>Type</th>
-      <th>Item / Description</th>
-      <th className="amount-col">Amount</th>
-      <th>Payment</th>
-    </tr>
-  </thead>
-  <tbody>
-
-    {filteredSales.map((s) => (
-      <tr key={"s" + s.id} className="sale-row">
-        <td>Sale</td>
-        <td>{s.item_name}</td>
-        <td className="monofont amount-col faded-green">
-          {formatMoney(s.price)}
-        </td>
-        <td>{s.payment_mode}</td>
-      </tr>
-    ))}
-
-    {filteredExpenses.map((e) => (
-      <tr key={"e" + e.id} className="expense-row">
-        <td>Expense</td>
-        <td>{e.description}</td>
-        <td className="monofont amount-col faded-red">
-          {formatMoney(e.amount)}
-        </td>
-        <td>—</td>
-      </tr>
-    ))}
-
-  </tbody>
-</table>
-</div>
-       </div>
+          <h3>Transactions</h3>
+          <div className="report-table-container">
+            <table className="report-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Item / Description</th>
+                  <th className="amount-col">Amount</th>
+                  <th>Payment</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSales.map((s) => (
+                  <tr key={"s" + s.id} className="sale-row">
+                    <td>Sale</td>
+                    <td>{s.item_name}</td>
+                    <td className="monofont amount-col faded-green">{formatMoney(s.price)}</td>
+                    <td>{s.payment_mode}</td>
+                  </tr>
+                ))}
+                {filteredExpenses.map((e) => (
+                  <tr key={"e" + e.id} className="expense-row">
+                    <td>Expense</td>
+                    <td>{e.description}</td>
+                    <td className="monofont amount-col faded-red">{formatMoney(e.amount)}</td>
+                    <td>—</td>
+                  </tr>
+                ))}
+                {filteredRemittances.map((r) => (
+                  <tr key={"r" + r.id} className="remit-row">
+                    <td>Remittance</td>
+                    <td>{r.note}</td>
+                    <td className="monofont amount-col faded-red">-{formatMoney(r.amount)}</td>
+                    <td>Cash Out</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         <button className="btn" style={{ marginTop: "20px" }} onClick={saveAsImage}>
           Save Report as Image
