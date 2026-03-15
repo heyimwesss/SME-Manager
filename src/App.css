@@ -344,8 +344,15 @@ button.btn-delete:hover {
 
   .nav-links li { margin: 10px 0; }
 
-  .transactions-table { display: none; }
-  .transactions-cards { display: block; }
+  .transactions-table {
+    display: table;
+    font-size: 14px;
+  }
+
+  .transactions-table th,
+  .transactions-table td {
+    padding: 8px;
+  }
 
   .form-group label { font-size: 14px; }
   .form-group input, .form-group select { font-size: 14px; }
