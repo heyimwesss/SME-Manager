@@ -4,13 +4,13 @@ import { supabase } from "../services/supabase";
 import { useAccount } from "../context/AccountContext";
 import bcrypt from "bcryptjs";
 import Navbar from "../components/Navbar";
+import { useNavigate } from "react-router-dom"; // <-- import this
 
 export default function Accounts() {
   const { activeAccount, login } = useAccount();
+  const navigate = useNavigate(); // <-- hook for navigation
 
   const [accounts, setAccounts] = useState([]);
-  const [newName, setNewName] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [selectedAccount, setSelectedAccount] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -24,33 +24,6 @@ export default function Accounts() {
     const { data, error } = await supabase.from("accounts").select("*").order("name");
     if (error) console.log(error);
     else setAccounts(data || []);
-  }
-
-  // Create account
-  async function createAccount() {
-    if (!newName || !newPassword) {
-      setErrorMsg("Fill both name and password");
-      return;
-    }
-
-    const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync(newPassword, salt);
-
-    const { data, error } = await supabase
-      .from("accounts")
-      .insert([{ name: newName, password_hash: hash }])
-      .select();
-
-    if (error) {
-      console.log(error);
-      setErrorMsg("Error creating account");
-      return;
-    }
-
-    setAccounts([data[0], ...accounts]);
-    setNewName("");
-    setNewPassword("");
-    setErrorMsg("");
   }
 
   // Login to account
@@ -73,8 +46,9 @@ export default function Accounts() {
 
     const match = bcrypt.compareSync(loginPassword, data.password_hash);
     if (match) {
-      login(data);
+      login(data);          // set active account
       setErrorMsg("");
+      navigate("/dashboard"); // <-- redirect to dashboard
     } else {
       setErrorMsg("Incorrect password");
     }
@@ -88,20 +62,6 @@ export default function Accounts() {
       <h1>Accounts</h1>
 
       {errorMsg && <p style={{ color: "red" }}>{errorMsg}</p>}
-
-      {/* Create account */}
- {/*    <div className="form-container">
-        <h2>Create New Account</h2>
-        <div className="form-group">
-          <label>Name</label>
-          <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Account name" />
-        </div>
-        <div className="form-group">
-          <label>Password</label>
-          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Password" />
-        </div>
-        <button className="btn" onClick={createAccount}>Create Account</button>
-      </div> */}
 
       {/* Login */}
       <div className="form-container" style={{ marginTop: "30px" }}>
@@ -117,7 +77,12 @@ export default function Accounts() {
         </div>
         <div className="form-group">
           <label>Password</label>
-          <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Password" />
+          <input
+            type="password"
+            value={loginPassword}
+            onChange={(e) => setLoginPassword(e.target.value)}
+            placeholder="Password"
+          />
         </div>
         <button className="btn" onClick={handleLogin}>Login</button>
       </div>
