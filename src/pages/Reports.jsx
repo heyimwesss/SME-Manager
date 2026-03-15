@@ -6,6 +6,19 @@ import download from "downloadjs";
 import { useAccount } from "../context/AccountContext";
 import Navbar from "../components/Navbar";
 
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell
+} from "recharts";
+
 export default function Reports() {
 
   const { activeAccount } = useAccount();
@@ -24,6 +37,7 @@ export default function Reports() {
 
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - today.getDay());
+
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
 
@@ -113,7 +127,6 @@ export default function Reports() {
     (sum,s)=> s.payment_mode==="Bank" ? sum+Number(s.price):sum,0
   );
 
-
   const cashExpenses = filteredExpenses.reduce((sum,e)=>sum+Number(e.amount),0);
 
   const bankExpensesTotal = filteredBankExpenses.reduce(
@@ -124,13 +137,24 @@ export default function Reports() {
     (sum,r)=>sum+Number(r.amount),0
   );
 
-
   const cashBalance = cashSales - cashExpenses - cashRemitted;
 
   const bankBalance = bankSales - bankExpensesTotal;
 
   const totalBalance = cashBalance + bankBalance;
 
+
+  const financeData = [
+    {name:"Cash Sales",value:cashSales},
+    {name:"Bank Sales",value:bankSales},
+    {name:"Cash Expenses",value:cashExpenses},
+    {name:"Bank Expenses",value:bankExpensesTotal}
+  ];
+
+  const balanceData = [
+    {name:"Cash Balance",value:cashBalance},
+    {name:"Bank Balance",value:bankBalance}
+  ];
 
 
   let reportRange="";
@@ -142,7 +166,6 @@ export default function Reports() {
 
   if(view==="monthly")
     reportRange=`${today.toLocaleString("default",{month:"long"})} ${today.getFullYear()}`;
-
 
 
   const saveImage=()=>{
@@ -157,166 +180,215 @@ export default function Reports() {
 
   if(!activeAccount) return <p>Loading account...</p>;
 
-
   return(
+
     <>
-      <Navbar/>
+    <Navbar/>
 
-      <div className="page">
+    <div className="page">
 
-        <h1>Financial Reports</h1>
+      <h1>Financial Reports</h1>
 
-        <div className="form-group">
-          <label>Report Period</label>
+      <div className="form-group">
+        <label>Report Period</label>
+        <select value={view} onChange={(e)=>setView(e.target.value)}>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
 
-          <select value={view} onChange={(e)=>setView(e.target.value)}>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
+
+      <div ref={reportRef} className="report-card">
+
+        <h2>{activeAccount.name}</h2>
+        <p><strong>Period:</strong> {reportRange}</p>
+
+
+        {/* SUMMARY CARDS */}
+
+        <div className="report-grid">
+
+          <div className="report-box">
+            <h4>Total Sales</h4>
+            <p className="monofont faded-green">{formatMoney(totalSales)}</p>
+          </div>
+
+          <div className="report-box">
+            <h4>Cash Sales</h4>
+            <p className="monofont">{formatMoney(cashSales)}</p>
+          </div>
+
+          <div className="report-box">
+            <h4>Bank Sales</h4>
+            <p className="monofont">{formatMoney(bankSales)}</p>
+          </div>
+
+          <div className="report-box">
+            <h4>Cash Expenses</h4>
+            <p className="monofont faded-red">{formatMoney(cashExpenses)}</p>
+          </div>
+
+          <div className="report-box">
+            <h4>Bank Expenses</h4>
+            <p className="monofont faded-red">{formatMoney(bankExpensesTotal)}</p>
+          </div>
+
+          <div className="report-box">
+            <h4>Cash Given to Boss</h4>
+            <p className="monofont faded-red">{formatMoney(cashRemitted)}</p>
+          </div>
+
+          <div className="report-box highlight-green">
+            <h4>Cash Balance</h4>
+            <p className="monofont">{formatMoney(cashBalance)}</p>
+          </div>
+
+          <div className="report-box highlight-green">
+            <h4>Bank Balance</h4>
+            <p className="monofont">{formatMoney(bankBalance)}</p>
+          </div>
+
+          <div className="report-box highlight-total">
+            <h4>Total Business Balance</h4>
+            <p className="monofont">{formatMoney(totalBalance)}</p>
+          </div>
+
         </div>
 
 
-        <div ref={reportRef} className="report-card">
+        {/* CHARTS */}
 
-          <h2>{activeAccount.name}</h2>
-          <p><strong>Period:</strong> {reportRange}</p>
+        <div className="charts-grid">
 
+          <div className="chart-card">
 
-          {/* SUMMARY CARDS */}
+            <h3>Sales vs Expenses</h3>
 
-          <div className="report-grid">
-
-            <div className="report-box">
-              <h4>Total Sales</h4>
-              <p className="monofont faded-green">{formatMoney(totalSales)}</p>
-            </div>
-
-            <div className="report-box">
-              <h4>Cash Sales</h4>
-              <p className="monofont">{formatMoney(cashSales)}</p>
-            </div>
-
-            <div className="report-box">
-              <h4>Bank Sales</h4>
-              <p className="monofont">{formatMoney(bankSales)}</p>
-            </div>
-
-            <div className="report-box">
-              <h4>Cash Expenses</h4>
-              <p className="monofont faded-red">{formatMoney(cashExpenses)}</p>
-            </div>
-
-            <div className="report-box">
-              <h4>Bank Expenses</h4>
-              <p className="monofont faded-red">{formatMoney(bankExpensesTotal)}</p>
-            </div>
-
-            <div className="report-box">
-              <h4>Cash Given to Boss</h4>
-              <p className="monofont faded-red">{formatMoney(cashRemitted)}</p>
-            </div>
-
-            <div className="report-box highlight-green">
-              <h4>Cash Balance</h4>
-              <p className="monofont">{formatMoney(cashBalance)}</p>
-            </div>
-
-            <div className="report-box highlight-green">
-              <h4>Bank Balance</h4>
-              <p className="monofont">{formatMoney(bankBalance)}</p>
-            </div>
-
-            <div className="report-box highlight-total">
-              <h4>Total Business Balance</h4>
-              <p className="monofont">{formatMoney(totalBalance)}</p>
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={financeData}>
+                <CartesianGrid strokeDasharray="3 3"/>
+                <XAxis dataKey="name"/>
+                <YAxis/>
+                <Tooltip formatter={(v)=>formatMoney(v)}/>
+                <Bar dataKey="value"/>
+              </BarChart>
+            </ResponsiveContainer>
 
           </div>
 
 
+          <div className="chart-card">
 
-          {/* TRANSACTIONS TABLE */}
+            <h3>Balance Distribution</h3>
 
-          <h3 style={{marginTop:"30px"}}>Transactions</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
 
-          <div className="report-table-container">
+                <Pie
+                  data={balanceData}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={110}
+                  label
+                >
+                  <Cell/>
+                  <Cell/>
+                </Pie>
 
-            <table className="report-table">
+                <Tooltip formatter={(v)=>formatMoney(v)}/>
 
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Description</th>
-                  <th>Payment</th>
-                  <th>Amount</th>
+              </PieChart>
+            </ResponsiveContainer>
+
+          </div>
+
+        </div>
+
+
+
+        {/* TRANSACTIONS */}
+
+        <h3 style={{marginTop:"30px"}}>Transactions</h3>
+
+        <div className="report-table-container">
+
+          <table className="report-table">
+
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Payment</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              {filteredSales.map(s=>(
+                <tr key={"s"+s.id}>
+                  <td>Sale</td>
+                  <td>{s.item_name}</td>
+                  <td>{s.payment_mode}</td>
+                  <td className="monofont faded-green">
+                    {formatMoney(s.price)}
+                  </td>
                 </tr>
-              </thead>
+              ))}
 
-              <tbody>
+              {filteredExpenses.map(e=>(
+                <tr key={"e"+e.id}>
+                  <td>Expense</td>
+                  <td>{e.description}</td>
+                  <td>Cash</td>
+                  <td className="monofont faded-red">
+                    -{formatMoney(e.amount)}
+                  </td>
+                </tr>
+              ))}
 
-                {filteredSales.map(s=>(
-                  <tr key={"s"+s.id}>
-                    <td>Sale</td>
-                    <td>{s.item_name}</td>
-                    <td>{s.payment_mode}</td>
-                    <td className="monofont faded-green">
-                      {formatMoney(s.price)}
-                    </td>
-                  </tr>
-                ))}
+              {filteredBankExpenses.map(e=>(
+                <tr key={"b"+e.id}>
+                  <td>Bank Expense</td>
+                  <td>{e.description}</td>
+                  <td>Bank</td>
+                  <td className="monofont faded-red">
+                    -{formatMoney(e.amount)}
+                  </td>
+                </tr>
+              ))}
 
-                {filteredExpenses.map(e=>(
-                  <tr key={"e"+e.id}>
-                    <td>Expense</td>
-                    <td>{e.description}</td>
-                    <td>Cash</td>
-                    <td className="monofont faded-red">
-                      -{formatMoney(e.amount)}
-                    </td>
-                  </tr>
-                ))}
+              {filteredRemittances.map(r=>(
+                <tr key={"r"+r.id}>
+                  <td>Remittance</td>
+                  <td>{r.note}</td>
+                  <td>Cash Out</td>
+                  <td className="monofont faded-red">
+                    -{formatMoney(r.amount)}
+                  </td>
+                </tr>
+              ))}
 
-                {filteredBankExpenses.map(e=>(
-                  <tr key={"b"+e.id}>
-                    <td>Bank Expense</td>
-                    <td>{e.description}</td>
-                    <td>Bank</td>
-                    <td className="monofont faded-red">
-                      -{formatMoney(e.amount)}
-                    </td>
-                  </tr>
-                ))}
+            </tbody>
 
-                {filteredRemittances.map(r=>(
-                  <tr key={"r"+r.id}>
-                    <td>Remittance</td>
-                    <td>{r.note}</td>
-                    <td>Cash Out</td>
-                    <td className="monofont faded-red">
-                      -{formatMoney(r.amount)}
-                    </td>
-                  </tr>
-                ))}
-
-              </tbody>
-
-            </table>
-
-          </div>
+          </table>
 
         </div>
-
-
-        <button
-          className="btn"
-          style={{marginTop:"20px"}}
-          onClick={saveImage}
-        >
-          Download Report
-        </button>
 
       </div>
+
+
+      <button
+        className="btn"
+        style={{marginTop:"20px"}}
+        onClick={saveImage}
+      >
+        Download Report
+      </button>
+
+    </div>
+
     </>
   );
 }
