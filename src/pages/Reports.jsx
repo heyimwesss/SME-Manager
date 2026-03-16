@@ -8,318 +8,319 @@ import Navbar from "../components/Navbar";
 
 export default function Reports() {
 
-  const { activeAccount } = useAccount();
+const { activeAccount } = useAccount();
+
+const [sales,setSales] = useState([]);
+const [expenses,setExpenses] = useState([]);
+const [bankExpenses,setBankExpenses] = useState([]);
+const [remittances,setRemittances] = useState([]);
+
+const [view,setView] = useState("daily");
+const [showTransactions,setShowTransactions] = useState(false);
+
+const reportRef = useRef();
 
-  const [sales,setSales] = useState([]);
-  const [expenses,setExpenses] = useState([]);
-  const [bankExpenses,setBankExpenses] = useState([]);
-  const [remittances,setRemittances] = useState([]);
+const today = new Date();
+const todayStr = today.toISOString().split("T")[0];
+
+const weekStart = new Date(today);
+weekStart.setDate(today.getDate() - today.getDay());
 
-  const [view,setView] = useState("daily");
+const weekEnd = new Date(weekStart);
+weekEnd.setDate(weekStart.getDate() + 6);
 
-  const reportRef = useRef();
+const weekStartStr = weekStart.toISOString().split("T")[0];
+const weekEndStr = weekEnd.toISOString().split("T")[0];
 
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
+const monthStart = new Date(today.getFullYear(),today.getMonth(),1);
+const monthEnd = new Date(today.getFullYear(),today.getMonth()+1,0);
 
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - today.getDay());
+const monthStartStr = monthStart.toISOString().split("T")[0];
+const monthEndStr = monthEnd.toISOString().split("T")[0];
 
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
+useEffect(()=>{
+if(activeAccount){
+fetchSales();
+fetchExpenses();
+fetchBankExpenses();
+fetchRemittances();
+}
+},[activeAccount]);
 
-  const weekStartStr = weekStart.toISOString().split("T")[0];
-  const weekEndStr = weekEnd.toISOString().split("T")[0];
+async function fetchSales(){
+const {data} = await supabase
+.from("sales")
+.select("*")
+.eq("account_id",activeAccount.id)
+.order("sold_at",{ascending:true});
 
-  const monthStart = new Date(today.getFullYear(),today.getMonth(),1);
-  const monthEnd = new Date(today.getFullYear(),today.getMonth()+1,0);
+setSales(data || []);
+}
 
-  const monthStartStr = monthStart.toISOString().split("T")[0];
-  const monthEndStr = monthEnd.toISOString().split("T")[0];
+async function fetchExpenses(){
+const {data} = await supabase
+.from("expenses")
+.select("*")
+.eq("account_id",activeAccount.id)
+.order("expense_date",{ascending:true});
 
+setExpenses(data || []);
+}
 
-  useEffect(()=>{
-    if(activeAccount){
-      fetchSales();
-      fetchExpenses();
-      fetchBankExpenses();
-      fetchRemittances();
-    }
-  },[activeAccount]);
+async function fetchBankExpenses(){
+const {data} = await supabase
+.from("bank_expenses")
+.select("*")
+.eq("account_id",activeAccount.id)
+.order("created_at",{ascending:true});
 
+setBankExpenses(data || []);
+}
 
-  async function fetchSales(){
-    const {data} = await supabase
-      .from("sales")
-      .select("*")
-      .eq("account_id",activeAccount.id)
-      .order("sold_at",{ascending:true});
+async function fetchRemittances(){
+const {data} = await supabase
+.from("cash_remittances")
+.select("*")
+.eq("account_id",activeAccount.id)
+.order("created_at",{ascending:true});
 
-    setSales(data || []);
-  }
+setRemittances(data || []);
+}
 
-  async function fetchExpenses(){
-    const {data} = await supabase
-      .from("expenses")
-      .select("*")
-      .eq("account_id",activeAccount.id)
-      .order("expense_date",{ascending:true});
+function filterByDate(date){
 
-    setExpenses(data || []);
-  }
+if(view==="daily") return date===todayStr;
+if(view==="weekly") return date>=weekStartStr && date<=weekEndStr;
+if(view==="monthly") return date>=monthStartStr && date<=monthEndStr;
 
-  async function fetchBankExpenses(){
-    const {data} = await supabase
-      .from("bank_expenses")
-      .select("*")
-      .eq("account_id",activeAccount.id)
-      .order("created_at",{ascending:true});
+return true;
+}
 
-    setBankExpenses(data || []);
-  }
+const filteredSales = sales.filter(s=>filterByDate(s.sold_at.split("T")[0]));
+const filteredExpenses = expenses.filter(e=>filterByDate(e.expense_date.split("T")[0]));
+const filteredBankExpenses = bankExpenses.filter(e=>filterByDate(e.created_at.split("T")[0]));
+const filteredRemittances = remittances.filter(r=>filterByDate(r.created_at.split("T")[0]));
 
-  async function fetchRemittances(){
-    const {data} = await supabase
-      .from("cash_remittances")
-      .select("*")
-      .eq("account_id",activeAccount.id)
-      .order("created_at",{ascending:true});
+const totalSales = filteredSales.reduce((sum,s)=>sum+Number(s.price),0);
 
-    setRemittances(data || []);
-  }
+const cashSales = filteredSales.reduce(
+(sum,s)=> s.payment_mode==="Cash" ? sum+Number(s.price):sum,0
+);
 
+const bankSales = filteredSales.reduce(
+(sum,s)=> s.payment_mode==="Bank" ? sum+Number(s.price):sum,0
+);
 
-  function filterByDate(date){
+const cashExpenses = filteredExpenses.reduce(
+(sum,e)=>sum+Number(e.amount),0
+);
 
-    if(view==="daily") return date===todayStr;
-    if(view==="weekly") return date>=weekStartStr && date<=weekEndStr;
-    if(view==="monthly") return date>=monthStartStr && date<=monthEndStr;
+const bankExpensesTotal = filteredBankExpenses.reduce(
+(sum,e)=>sum+Number(e.amount),0
+);
 
-    return true;
-  }
+const cashRemitted = filteredRemittances.reduce(
+(sum,r)=>sum+Number(r.amount),0
+);
 
+const cashBalance = cashSales - cashExpenses - cashRemitted;
 
-  const filteredSales = sales.filter(s=>filterByDate(s.sold_at.split("T")[0]));
-  const filteredExpenses = expenses.filter(e=>filterByDate(e.expense_date.split("T")[0]));
-  const filteredBankExpenses = bankExpenses.filter(e=>filterByDate(e.created_at.split("T")[0]));
-  const filteredRemittances = remittances.filter(r=>filterByDate(r.created_at.split("T")[0]));
+const bankBalance = bankSales - bankExpensesTotal;
 
+const totalBalance = cashBalance + bankBalance;
 
-  const totalSales = filteredSales.reduce((sum,s)=>sum+Number(s.price),0);
+let reportRange="";
 
-  const cashSales = filteredSales.reduce(
-    (sum,s)=> s.payment_mode==="Cash" ? sum+Number(s.price):sum,0
-  );
+if(view==="daily") reportRange=new Date(todayStr).toLocaleDateString();
 
-  const bankSales = filteredSales.reduce(
-    (sum,s)=> s.payment_mode==="Bank" ? sum+Number(s.price):sum,0
-  );
+if(view==="weekly")
+reportRange=`${new Date(weekStartStr).toLocaleDateString()} - ${new Date(weekEndStr).toLocaleDateString()}`;
 
-  const cashExpenses = filteredExpenses.reduce(
-    (sum,e)=>sum+Number(e.amount),0
-  );
+if(view==="monthly")
+reportRange=`${today.toLocaleString("default",{month:"long"})} ${today.getFullYear()}`;
 
-  const bankExpensesTotal = filteredBankExpenses.reduce(
-    (sum,e)=>sum+Number(e.amount),0
-  );
+const saveImage = async ()=>{
 
-  const cashRemitted = filteredRemittances.reduce(
-    (sum,r)=>sum+Number(r.amount),0
-  );
+const prevState = showTransactions;
 
+setShowTransactions(true);
 
-  const cashBalance = cashSales - cashExpenses - cashRemitted;
+setTimeout(()=>{
 
-  const bankBalance = bankSales - bankExpensesTotal;
+if(reportRef.current){
 
-  const totalBalance = cashBalance + bankBalance;
+toPng(reportRef.current).then((dataUrl)=>{
+download(dataUrl,`report-${view}.png`);
+setShowTransactions(prevState);
+});
 
+}
 
-  let reportRange="";
+},300);
 
-  if(view==="daily") reportRange=new Date(todayStr).toLocaleDateString();
+};
 
-  if(view==="weekly")
-    reportRange=`${new Date(weekStartStr).toLocaleDateString()} - ${new Date(weekEndStr).toLocaleDateString()}`;
+if(!activeAccount) return <p>Loading account...</p>;
 
-  if(view==="monthly")
-    reportRange=`${today.toLocaleString("default",{month:"long"})} ${today.getFullYear()}`;
+return(
 
+<>
+<Navbar/>
 
-  const saveImage=()=>{
-    if(reportRef.current){
-      toPng(reportRef.current)
-      .then((dataUrl)=>{
-        download(dataUrl,`report-${view}.png`);
-      });
-    }
-  };
+<div className="page">
 
+<h1>Financial Report</h1>
 
-  if(!activeAccount) return <p>Loading account...</p>;
+<select value={view} onChange={(e)=>setView(e.target.value)}>
+<option value="daily">Daily</option>
+<option value="weekly">Weekly</option>
+<option value="monthly">Monthly</option>
+</select>
 
+<div ref={reportRef} className="receipt-report">
 
-  return(
+<h2>{activeAccount.name}</h2>
+<p>{reportRange}</p>
 
-  <>
-  <Navbar/>
+<hr/>
 
-  <div className="page">
+<h3>Sales</h3>
 
-  <h1>Financial Reports</h1>
+<div className="line">
+<span>Cash Sales</span>
+<span>{formatMoney(cashSales)}</span>
+</div>
 
-  <div className="form-group">
-    <label>Report Period</label>
+<div className="line">
+<span>Bank Sales</span>
+<span>{formatMoney(bankSales)}</span>
+</div>
 
-    <select value={view} onChange={(e)=>setView(e.target.value)}>
-      <option value="daily">Daily</option>
-      <option value="weekly">Weekly</option>
-      <option value="monthly">Monthly</option>
-    </select>
-  </div>
+<div className="line total">
+<span>Total Sales</span>
+<span>{formatMoney(totalSales)}</span>
+</div>
 
+<hr/>
 
-  <div ref={reportRef} className="report-card">
+<h3>Expenses</h3>
 
-  <h2>{activeAccount.name}</h2>
-  <p><strong>Period:</strong> {reportRange}</p>
+<div className="line red">
+<span>Cash Expenses</span>
+<span>-{formatMoney(cashExpenses)}</span>
+</div>
 
+<div className="line red">
+<span>Bank Expenses</span>
+<span>-{formatMoney(bankExpensesTotal)}</span>
+</div>
 
-  {/* SUMMARY GRID */}
+<hr/>
 
-  <div className="report-grid">
+<h3>Cash Movement</h3>
 
-  <div className="report-box">
-  <h4>Total Sales</h4>
-  <p className="monofont faded-green">{formatMoney(totalSales)}</p>
-  </div>
+<div className="line red">
+<span>Cash Given To Boss</span>
+<span>-{formatMoney(cashRemitted)}</span>
+</div>
 
-  <div className="report-box">
-  <h4>Cash Sales</h4>
-  <p className="monofont">{formatMoney(cashSales)}</p>
-  </div>
+<hr/>
 
-  <div className="report-box">
-  <h4>Bank Sales</h4>
-  <p className="monofont">{formatMoney(bankSales)}</p>
-  </div>
+<div className="cash-highlight">
 
-  <div className="report-box">
-  <h4>Cash Expenses</h4>
-  <p className="monofont faded-red">{formatMoney(cashExpenses)}</p>
-  </div>
+<div>CASH ON HAND</div>
 
-  <div className="report-box">
-  <h4>Bank Expenses</h4>
-  <p className="monofont faded-red">{formatMoney(bankExpensesTotal)}</p>
-  </div>
+<div className="cash-amount">
+{formatMoney(cashBalance)}
+</div>
 
-  <div className="report-box">
-  <h4>Cash Given to Boss</h4>
-  <p className="monofont faded-red">{formatMoney(cashRemitted)}</p>
-  </div>
+</div>
 
-  <div className="report-box highlight-green">
-  <h4>Cash Balance</h4>
-  <p className="monofont">{formatMoney(cashBalance)}</p>
-  </div>
+<hr/>
 
-  <div className="report-box highlight-green">
-  <h4>Bank Balance</h4>
-  <p className="monofont">{formatMoney(bankBalance)}</p>
-  </div>
+<div className="line">
+<span>Bank Balance</span>
+<span>{formatMoney(bankBalance)}</span>
+</div>
 
-  <div className="report-box highlight-total">
-  <h4>Total Business Balance</h4>
-  <p className="monofont">{formatMoney(totalBalance)}</p>
-  </div>
+<div className="line total">
+<span>Total Balance</span>
+<span>{formatMoney(totalBalance)}</span>
+</div>
 
-  </div>
+<hr/>
 
+<h3
+style={{cursor:"pointer"}}
+onClick={()=>setShowTransactions(!showTransactions)}
+>
+Transactions {showTransactions ? "▲":"▼"}
+</h3>
 
+{showTransactions && (
 
-  {/* TRANSACTIONS */}
+<table className="receipt-table">
 
-  <h3 style={{marginTop:"35px"}}>Transactions</h3>
+<thead>
+<tr>
+<th>Type</th>
+<th>Item</th>
+<th>Pay</th>
+<th>Amt</th>
+</tr>
+</thead>
 
-  <div className="report-table-container">
+<tbody>
 
-  <table className="report-table">
+{filteredSales.map(s=>(
+<tr key={"s"+s.id}>
+<td>Sale</td>
+<td>{s.item_name}</td>
+<td>{s.payment_mode}</td>
+<td className="green">{formatMoney(s.price)}</td>
+</tr>
+))}
 
-  <thead>
-  <tr>
-  <th>Type</th>
-  <th>Description</th>
-  <th>Payment</th>
-  <th>Amount</th>
-  </tr>
-  </thead>
+{filteredExpenses.map(e=>(
+<tr key={"e"+e.id}>
+<td>Expense</td>
+<td>{e.description}</td>
+<td>Cash</td>
+<td className="red">-{formatMoney(e.amount)}</td>
+</tr>
+))}
 
-  <tbody>
+{filteredBankExpenses.map(e=>(
+<tr key={"b"+e.id}>
+<td>Expense</td>
+<td>{e.description}</td>
+<td>Bank</td>
+<td className="red">-{formatMoney(e.amount)}</td>
+</tr>
+))}
 
-  {filteredSales.map(s=>(
-  <tr key={"s"+s.id}>
-  <td>Sale</td>
-  <td>{s.item_name}</td>
-  <td>{s.payment_mode}</td>
-  <td className="monofont faded-green">
-  {formatMoney(s.price)}
-  </td>
-  </tr>
-  ))}
+{filteredRemittances.map(r=>(
+<tr key={"r"+r.id}>
+<td>Remit</td>
+<td>{r.note}</td>
+<td>Cash</td>
+<td className="red">-{formatMoney(r.amount)}</td>
+</tr>
+))}
 
-  {filteredExpenses.map(e=>(
-  <tr key={"e"+e.id}>
-  <td>Expense</td>
-  <td>{e.description}</td>
-  <td>Cash</td>
-  <td className="monofont faded-red">
-  -{formatMoney(e.amount)}
-  </td>
-  </tr>
-  ))}
+</tbody>
 
-  {filteredBankExpenses.map(e=>(
-  <tr key={"b"+e.id}>
-  <td>Bank Expense</td>
-  <td>{e.description}</td>
-  <td>Bank</td>
-  <td className="monofont faded-red">
-  -{formatMoney(e.amount)}
-  </td>
-  </tr>
-  ))}
+</table>
 
-  {filteredRemittances.map(r=>(
-  <tr key={"r"+r.id}>
-  <td>Remittance</td>
-  <td>{r.note}</td>
-  <td>Cash Out</td>
-  <td className="monofont faded-red">
-  -{formatMoney(r.amount)}
-  </td>
-  </tr>
-  ))}
+)}
 
-  </tbody>
+</div>
 
-  </table>
+<button onClick={saveImage}>
+Download Report
+</button>
 
-  </div>
-
-  </div>
-
-
-  <button
-  className="btn"
-  style={{marginTop:"20px"}}
-  onClick={saveImage}
-  >
-  Download Report
-  </button>
-
-
-  </div>
-  </>
-  );
+</div>
+</>
+);
 }

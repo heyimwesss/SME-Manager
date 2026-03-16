@@ -322,6 +322,64 @@ button.btn-delete:hover {
 
 /* SUMMARY GRID */
 
+.receipt-report{
+background:white;
+padding:20px;
+max-width:420px;
+margin:auto;
+font-family:monospace;
+}
+
+.line{
+display:flex;
+justify-content:space-between;
+padding:6px 0;
+}
+
+.total{
+font-weight:bold;
+border-top:1px dashed #ccc;
+margin-top:4px;
+}
+
+.red{
+color:#d22;
+}
+
+.green{
+color:#1a7f37;
+}
+
+.cash-highlight{
+text-align:center;
+background:#e9fff1;
+border:2px solid #1a7f37;
+padding:15px;
+margin:15px 0;
+font-weight:bold;
+}
+
+.cash-amount{
+font-size:28px;
+margin-top:5px;
+}
+
+.receipt-table{
+width:100%;
+font-size:12px;
+margin-top:10px;
+}
+
+.receipt-table th{
+text-align:left;
+padding:4px;
+}
+
+.receipt-table td{
+padding:4px;
+border-top:1px solid #eee;
+}
+
 .report-grid{
 display:grid;
 grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
