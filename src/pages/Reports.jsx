@@ -179,7 +179,7 @@ return(
 
 <div ref={reportRef} className="receipt-report">
 
-<h2>{activeAccount.name}</h2>
+<h2 style="text allign: center;">{activeAccount.name}</h2>
 <p>{reportRange}</p>
 
 <hr/>
