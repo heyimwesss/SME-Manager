@@ -526,26 +526,60 @@ margin-bottom:6px;
 }
 
 
-/* Buttons */
-
-.note-actions{
-display:flex;
-gap:8px;
-margin-top:6px;
+/* Save / Add Note button */
+.note-input button{
+    width:100%;
+    padding:10px;
+    border:none;
+    background:#1f7aec;      /* Blue button */
+    color:white;
+    border-radius:6px;
+    font-weight:500;
+    cursor:pointer;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+    transition:all 0.2s ease;
 }
 
+.note-input button:hover{
+    background:#1664c4;
+    box-shadow:0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Action buttons inside each note */
 .note-actions button{
-border:none;
-padding:5px 8px;
-border-radius:4px;
-font-size:12px;
-cursor:pointer;
-background:#f3f3f3;
-transition:background 0.2s;
+    padding:5px 10px;
+    border-radius:4px;
+    font-size:12px;
+    cursor:pointer;
+    border:none;
+    color:white;
+    transition:all 0.2s ease;
+    box-shadow:0 1px 3px rgba(0,0,0,0.1);
 }
 
-.note-actions button:hover{
-background:#e6e6e6;
+/* Specific button colors */
+.note-actions .edit-btn{
+    background:#4caf50;      /* Green for Edit */
+}
+
+.note-actions .edit-btn:hover{
+    background:#3e8e41;
+}
+
+.note-actions .delete-btn{
+    background:#f44336;      /* Red for Delete */
+}
+
+.note-actions .delete-btn:hover{
+    background:#d32f2f;
+}
+
+.note-actions .done-btn{
+    background:#ff9800;      /* Orange for Done */
+}
+
+.note-actions .done-btn:hover{
+    background:#f57c00;
 }
 
 
