@@ -29,6 +29,7 @@ export default function Navbar() {
       <ul className={`nav-links ${menuOpen ? "open" : ""}`}>
         <li onClick={() => { setMenuOpen(false); navigate("/dashboard"); }}>Dashboard</li>
         <li onClick={() => { setMenuOpen(false); navigate("/transactions"); }}>Transactions</li>
+        <li onClick={() => { setMenuOpen(false); navigate("/notes"); }}>Notes</li>
         <li onClick={() => { setMenuOpen(false); navigate("/reports"); }}>Reports</li>
         <li>
           <button className="btn btn-logout" onClick={logout}>Log Out</button>
