@@ -219,7 +219,7 @@ Due: {new Date(n.due_date).toLocaleDateString()}
 
 <div className="note-actions">
 
-<button onClick={()=>startEdit(n)}>
+<button className=".edit-btn" onClick={()=>startEdit(n)}>
 Edit
 </button>
 
