@@ -423,176 +423,194 @@ font-weight:600;
 }
 /* ========*/
 
-/* Page title */
-.notes-title{
-    text-align:center;
-    margin-bottom:25px;
-    font-weight:600;
-    letter-spacing:0.5px;
+/* =========================
+   Page Title
+========================= */
+.notes-title {
+  text-align: center;
+  margin-bottom: 25px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
-/* Input Section */
-.note-input{
-    background:#ffffff;
-    padding:18px;
-    border-radius:10px;
-    box-shadow:0 2px 10px rgba(0,0,0,0.05);
-    margin-bottom:25px;
+
+/* =========================
+   Input Section
+========================= */
+.note-input {
+  background: #ffffff;
+  padding: 18px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 25px;
 }
 
-.note-input textarea{
-    width:100%;
-    min-height:80px;
-    padding:10px;
-    border:1px solid #ddd;
-    border-radius:6px;
-    resize:none;
-    margin-bottom:10px;
-    font-family:inherit;
+.note-input textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  resize: none;
+  margin-bottom: 10px;
+  font-family: inherit;
 }
 
 .note-input select,
-.note-input input{
-    width:100%;
-    padding:8px;
-    border:1px solid #ddd;
-    border-radius:6px;
-    margin-bottom:10px;
-    background:white;
+.note-input input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  background: white;
 }
 
-/* Add Note / Save button */
-.note-input button{
-    width:100%;
-    padding:10px;
-    border:none;
-    background:#1f7aec;      /* Blue button */
-    color:white;
-    border-radius:6px;
-    font-weight:500;
-    cursor:pointer;
-    box-shadow:0 2px 5px rgba(0,0,0,0.1);
-    transition:all 0.2s ease;
+.note-input button {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  background: #1f7aec;
+  color: white;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
 }
 
-.note-input button:hover{
-    background:#1664c4;
-    box-shadow:0 4px 8px rgba(0,0,0,0.15);
+.note-input button:hover {
+  background: #1664c4;
 }
 
-/* Notes List */
-.note-item{
-    background:white;
-    border-radius:8px;
-    padding:14px;
-    margin-bottom:12px;
-    box-shadow:0 1px 6px rgba(0,0,0,0.05);
-    border-left:4px solid #ddd;
+
+/* =========================
+   Notes List
+========================= */
+.note-item {
+  background: white;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid #ddd;
 }
+
 
 /* Header row */
-.note-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    font-weight:600;
-    margin-bottom:6px;
+.note-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 
-.note-type{
-    font-size:14px;
+.note-type {
+  font-size: 14px;
 }
+
 
 /* Note text */
-.note-item p{
-    margin:4px 0 8px 0;
-    color:#333;
-    line-height:1.4;
+.note-item p {
+  margin: 4px 0 8px 0;
+  color: #333;
+  line-height: 1.4;
 }
+
 
 /* Due date */
-.due-date{
-    font-size:12px;
-    color:#777;
-    margin-bottom:6px;
+.due-date {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 6px;
 }
+
 
 /* Priority indicators */
-.priority{
-    font-size:12px;
-    padding:3px 7px;
-    border-radius:4px;
+.priority {
+  font-size: 12px;
+  padding: 3px 7px;
+  border-radius: 4px;
 }
 
-.priority.normal{
-    background:#f1f1f1;
-    color:#555;
+.priority.normal {
+  background: #f1f1f1;
+  color: #555;
 }
 
-.priority.important{
-    background:#fff3d6;
-    color:#b37400;
+.priority.important {
+  background: #fff3d6;
+  color: #b37400;
 }
 
-.priority.urgent{
-    background:#ffe1e1;
-    color:#c62828;
-    font-weight:600;
+.priority.urgent {
+  background: #ffe1e1;
+  color: #c62828;
+  font-weight: 600;
 }
+
 
 /* Completed notes */
-.done{
-    opacity:0.65;
-    border-left:4px solid #bbb;
+.done {
+  opacity: 0.65;
+  border-left: 4px solid #bbb;
 }
+
 
 /* Section divider */
-hr{
-    border:none;
-    border-top:1px solid #eee;
-    margin:25px 0;
+hr {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 25px 0;
 }
 
-/* Action buttons inside each note */
-.note-actions{
-    margin-top:6px;
+
+/* =========================
+   Note Action Buttons
+========================= */
+.note-actions {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.note-actions button{
-    padding:5px 10px;
-    border-radius:4px;
-    font-size:12px;
-    cursor:pointer;
-    border:none;
-    color:white;
-    transition:all 0.2s ease;
-    box-shadow:0 1px 3px rgba(0,0,0,0.1);
-    margin-right:6px;
+.note-actions button {
+  flex: 1;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  font-weight: 500;
 }
 
-/* Specific button colors */
-.note-actions .edit-btn{
-    background:#4caf50;      /* Green for Edit */
+/* Edit Button */
+.note-actions button.edit-btn {
+  background: #28a745; /* green */
+  color: white;
+}
+.note-actions button.edit-btn:hover {
+  background: #218838;
 }
 
-.note-actions .edit-btn:hover{
-    background:#3e8e41;
+/* Delete Button */
+.note-actions button.delete-btn {
+  background: #dc3545; /* red */
+  color: white;
+}
+.note-actions button.delete-btn:hover {
+  background: #c82333;
 }
 
-.note-actions .delete-btn{
-    background:#f44336;      /* Red for Delete */
+/* Done Button */
+.note-actions button.done-btn {
+  background: #ffc107; /* yellow/orange */
+  color: #212529;
 }
-
-.note-actions .delete-btn:hover{
-    background:#d32f2f;
-}
-
-.note-actions .done-btn{
-    background:#ff9800;      /* Orange for Done */
-}
-
-.note-actions .done-btn:hover{
-    background:#f57c00;
+.note-actions button.done-btn:hover {
+  background: #e0a800;
 }
 
 /* CHARTS */
