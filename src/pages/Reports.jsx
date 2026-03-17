@@ -87,20 +87,42 @@ const {data} = await supabase
 setRemittances(data || []);
 }
 
+/* ---------- PERIOD FILTER ---------- */
 function filterByDate(date){
-
 if(view==="daily") return date===todayStr;
 if(view==="weekly") return date>=weekStartStr && date<=weekEndStr;
 if(view==="monthly") return date>=monthStartStr && date<=monthEndStr;
-
 return true;
 }
 
+/* ---------- BEFORE PERIOD (FOR OPENING CASH) ---------- */
+function isBeforePeriod(date){
+if(view==="daily") return date < todayStr;
+if(view==="weekly") return date < weekStartStr;
+if(view==="monthly") return date < monthStartStr;
+return false;
+}
+
+/* ---------- FILTERED DATA ---------- */
 const filteredSales = sales.filter(s=>filterByDate(s.sold_at.split("T")[0]));
 const filteredExpenses = expenses.filter(e=>filterByDate(e.expense_date.split("T")[0]));
 const filteredBankExpenses = bankExpenses.filter(e=>filterByDate(e.created_at.split("T")[0]));
 const filteredRemittances = remittances.filter(r=>filterByDate(r.created_at.split("T")[0]));
 
+/* ---------- PREVIOUS DATA (FOR OPENING CASH) ---------- */
+const previousSales = sales.filter(s=>isBeforePeriod(s.sold_at.split("T")[0]));
+const previousExpenses = expenses.filter(e=>isBeforePeriod(e.expense_date.split("T")[0]));
+const previousRemittances = remittances.filter(r=>isBeforePeriod(r.created_at.split("T")[0]));
+
+/* ---------- OPENING CASH ---------- */
+const openingCash =
+previousSales.reduce(
+(sum,s)=> s.payment_mode==="Cash" ? sum+Number(s.price):sum,0
+)
+- previousExpenses.reduce((sum,e)=>sum+Number(e.amount),0)
+- previousRemittances.reduce((sum,r)=>sum+Number(r.amount),0);
+
+/* ---------- CURRENT PERIOD TOTALS ---------- */
 const totalSales = filteredSales.reduce((sum,s)=>sum+Number(s.price),0);
 
 const cashSales = filteredSales.reduce(
@@ -123,12 +145,15 @@ const cashRemitted = filteredRemittances.reduce(
 (sum,r)=>sum+Number(r.amount),0
 );
 
-const cashBalance = cashSales - cashExpenses - cashRemitted;
+/* ---------- FINAL BALANCES ---------- */
+const cashBalance =
+openingCash + cashSales - cashExpenses - cashRemitted;
 
 const bankBalance = bankSales - bankExpensesTotal;
 
 const totalBalance = cashBalance + bankBalance;
 
+/* ---------- REPORT RANGE ---------- */
 let reportRange="";
 
 if(view==="daily") reportRange=new Date(todayStr).toLocaleDateString();
@@ -139,31 +164,24 @@ reportRange=`${new Date(weekStartStr).toLocaleDateString()} - ${new Date(weekEnd
 if(view==="monthly")
 reportRange=`${today.toLocaleString("default",{month:"long"})} ${today.getFullYear()}`;
 
+/* ---------- DOWNLOAD ---------- */
 const saveImage = async ()=>{
-
 const prevState = showTransactions;
-
 setShowTransactions(true);
 
 setTimeout(()=>{
-
 if(reportRef.current){
-
 toPng(reportRef.current).then((dataUrl)=>{
 download(dataUrl,`report-${view}.png`);
 setShowTransactions(prevState);
 });
-
 }
-
 },300);
-
 };
 
 if(!activeAccount) return <p>Loading account...</p>;
 
 return(
-
 <>
 <Navbar/>
 
@@ -181,6 +199,15 @@ return(
 
 <h2 className="report-title"><b>{activeAccount.name}</b></h2>
 <p>{reportRange}</p>
+
+<hr/>
+
+<h3>Opening Balance</h3>
+
+<div className="line">
+<span>Opening Cash</span>
+<span>{formatMoney(openingCash)}</span>
+</div>
 
 <hr/>
 
@@ -227,13 +254,10 @@ return(
 <hr/>
 
 <div className="cash-highlight">
-
 <div>CASH ON HAND</div>
-
 <div className="cash-amount">
 {formatMoney(cashBalance)}
 </div>
-
 </div>
 
 <hr/>
@@ -323,4 +347,4 @@ Download Report
 </div>
 </>
 );
-}
+  }
