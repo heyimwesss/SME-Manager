@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
 export default function Transactions() {
-
   const { activeAccount } = useAccount();
   const navigate = useNavigate();
 
@@ -14,16 +13,24 @@ export default function Transactions() {
     if (!activeAccount) navigate("/accounts");
   }, [activeAccount, navigate]);
 
+  // OPENING BALANCES
+  const openingCash = Number(activeAccount?.opening_cash || 0);
+  const openingBank = Number(activeAccount?.opening_bank || 0);
+
+  // SALE FORM
   const [item, setItem] = useState("");
   const [price, setPrice] = useState("");
   const [payment, setPayment] = useState("Cash");
 
+  // REMITTANCE
   const [remitAmount, setRemitAmount] = useState("");
   const [remitNote, setRemitNote] = useState("Given to boss");
 
+  // BANK EXPENSE
   const [bankDesc, setBankDesc] = useState("");
   const [bankAmount, setBankAmount] = useState("");
 
+  // DATA
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [remittances, setRemittances] = useState([]);
@@ -35,131 +42,53 @@ export default function Transactions() {
   const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split("T")[0];
 
   useEffect(() => {
-    if (activeAccount) fetchAll();
+    if (activeAccount) {
+      fetchAll();
+    }
   }, [activeAccount]);
 
   async function fetchAll() {
-    await Promise.all([
-      fetchSales(),
-      fetchExpenses(),
-      fetchRemittances(),
-      fetchBankExpenses()
-    ]);
+    const { data: s } = await supabase.from("sales").select("*").eq("account_id", activeAccount.id);
+    const { data: e } = await supabase.from("expenses").select("*").eq("account_id", activeAccount.id);
+    const { data: r } = await supabase.from("cash_remittances").select("*").eq("account_id", activeAccount.id);
+    const { data: b } = await supabase.from("bank_expenses").select("*").eq("account_id", activeAccount.id);
+
+    setSales(s || []);
+    setExpenses(e || []);
+    setRemittances(r || []);
+    setBankExpenses(b || []);
   }
 
-  async function fetchSales() {
-    const { data } = await supabase
-      .from("sales")
-      .select("*")
-      .eq("account_id", activeAccount.id)
-      .order("sold_at", { ascending: true });
-    setSales(data || []);
-  }
+  // FILTER
+  const filterByDate = (arr, field) =>
+    arr.filter((x) => {
+      const date = x[field].split("T")[0];
+      if (view === "today") return date === todayStr;
+      if (view === "yesterday") return date === yesterdayStr;
+      return date < yesterdayStr;
+    });
 
-  async function fetchExpenses() {
-    const { data } = await supabase
-      .from("expenses")
-      .select("*")
-      .eq("account_id", activeAccount.id)
-      .order("expense_date", { ascending: true });
-    setExpenses(data || []);
-  }
+  const filteredSales = filterByDate(sales, "sold_at");
+  const filteredExpenses = filterByDate(expenses, "expense_date");
+  const filteredRemittances = filterByDate(remittances, "created_at");
+  const filteredBankExpenses = filterByDate(bankExpenses, "created_at");
 
-  async function fetchRemittances() {
-    const { data } = await supabase
-      .from("cash_remittances")
-      .select("*")
-      .eq("account_id", activeAccount.id)
-      .order("created_at", { ascending: true });
-    setRemittances(data || []);
-  }
+  // TOTALS
+  const cashSales = filteredSales
+    .filter((s) => s.payment_mode === "Cash")
+    .reduce((sum, s) => sum + Number(s.price), 0);
 
-  async function fetchBankExpenses() {
-    const { data } = await supabase
-      .from("bank_expenses")
-      .select("*")
-      .eq("account_id", activeAccount.id)
-      .order("created_at", { ascending: true });
-    setBankExpenses(data || []);
-  }
+  const bankSales = filteredSales
+    .filter((s) => s.payment_mode !== "Cash")
+    .reduce((sum, s) => sum + Number(s.price), 0);
 
-  /* ---------- DATE HELPERS ---------- */
-  const isToday = (date) => date === todayStr;
-  const isYesterday = (date) => date === yesterdayStr;
-  const isBeforeYesterday = (date) => date < yesterdayStr;
+  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const totalBankExpenses = filteredBankExpenses.reduce((sum, b) => sum + Number(b.amount), 0);
+  const totalRemittances = filteredRemittances.reduce((sum, r) => sum + Number(r.amount), 0);
 
-  const filter = (date) => {
-    if (view === "today") return isToday(date);
-    if (view === "yesterday") return isYesterday(date);
-    return isBeforeYesterday(date);
-  };
-
-  const isBeforeToday = (date) => date < todayStr;
-
-  /* ---------- FILTERED DATA ---------- */
-  const filteredSales = sales.filter(s => filter(s.sold_at.split("T")[0]));
-  const filteredExpenses = expenses.filter(e => filter(e.expense_date.split("T")[0]));
-  const filteredRemittances = remittances.filter(r => filter(r.created_at.split("T")[0]));
-  const filteredBankExpenses = bankExpenses.filter(b => filter(b.created_at.split("T")[0]));
-
-  /* ---------- PREVIOUS DATA ---------- */
-  const prevSales = sales.filter(s => isBeforeToday(s.sold_at.split("T")[0]));
-  const prevExpenses = expenses.filter(e => isBeforeToday(e.expense_date.split("T")[0]));
-  const prevRemittances = remittances.filter(r => isBeforeToday(r.created_at.split("T")[0]));
-  const prevBankSales = sales.filter(s => isBeforeToday(s.sold_at.split("T")[0]));
-  const prevBankExpenses = bankExpenses.filter(b => isBeforeToday(b.created_at.split("T")[0]));
-
-  /* ---------- OPENING BALANCES ---------- */
-  const openingCash =
-    prevSales.reduce(
-      (sum, s) => s.payment_mode === "Cash" ? sum + Number(s.price) : sum,
-      0
-    )
-    - prevExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
-    - prevRemittances.reduce((sum, r) => sum + Number(r.amount), 0);
-
-  const openingBank =
-    prevBankSales.reduce(
-      (sum, s) => s.payment_mode === "Bank" ? sum + Number(s.price) : sum,
-      0
-    )
-    - prevBankExpenses.reduce((sum, b) => sum + Number(b.amount), 0);
-
-  /* ---------- TODAY TOTALS ---------- */
-  const totalCashSales = filteredSales.reduce(
-    (sum, s) => s.payment_mode === "Cash" ? sum + Number(s.price) : sum,
-    0
-  );
-
-  const totalBankSales = filteredSales.reduce(
-    (sum, s) => s.payment_mode === "Bank" ? sum + Number(s.price) : sum,
-    0
-  );
-
-  const totalExpenses = filteredExpenses.reduce(
-    (sum, e) => sum + Number(e.amount),
-    0
-  );
-
-  const totalRemittances = filteredRemittances.reduce(
-    (sum, r) => sum + Number(r.amount),
-    0
-  );
-
-  const totalBankExpenses = filteredBankExpenses.reduce(
-    (sum, b) => sum + Number(b.amount),
-    0
-  );
-
-  /* ---------- FINAL BALANCES ---------- */
-  const cashOnHand =
-    openingCash + totalCashSales - totalExpenses - totalRemittances;
-
-  const bankBalance =
-    openingBank + totalBankSales - totalBankExpenses;
-
-  const totalBalance =
-    cashOnHand + bankBalance;
+  // FINAL BALANCES
+  const cashOnHand = openingCash + cashSales - totalExpenses - totalRemittances;
+  const bankBalance = openingBank + bankSales - totalBankExpenses;
 
   if (!activeAccount) return null;
 
@@ -170,36 +99,22 @@ export default function Transactions() {
       <div className="page">
         <h1>Transactions - {activeAccount.name}</h1>
 
-        {/* OPENING DISPLAY */}
-        <div className="summary" style={{ marginBottom: 20 }}>
-          <p>Opening Cash: {formatMoney(openingCash)}</p>
-          <p>Opening Bank: {formatMoney(openingBank)}</p>
-        </div>
-
-        {/* SALE FORM */}
+        {/* SALE */}
         <div className="form-container">
-          <div className="form-group">
-            <label>Item Name</label>
-            <input value={item} onChange={(e) => setItem(e.target.value)} />
-          </div>
+          <h2>Add Sale</h2>
 
-          <div className="form-group">
-            <label>Price</label>
-            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
-          </div>
+          <input placeholder="Item" value={item} onChange={(e) => setItem(e.target.value)} />
+          <input type="number" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} />
 
-          <div className="form-group">
-            <label>Payment Mode</label>
-            <select value={payment} onChange={(e) => setPayment(e.target.value)}>
-              <option>Cash</option>
-              <option>Airtel Money</option>
-              <option>Mpamba</option>
-              <option>Bank</option>
-            </select>
-          </div>
+          <select value={payment} onChange={(e) => setPayment(e.target.value)}>
+            <option>Cash</option>
+            <option>Airtel Money</option>
+            <option>Mpamba</option>
+            <option>Bank</option>
+          </select>
 
           <button
-            className="btn"
+            className="btn btn-primary"
             onClick={async () => {
               if (!item || !price) return alert("Fill all fields");
 
@@ -208,63 +123,113 @@ export default function Transactions() {
                 .insert([{ item_name: item, price, payment_mode: payment, account_id: activeAccount.id }])
                 .select();
 
-              setSales([...sales, data[0]]);
+              setSales([data[0], ...sales]);
               setItem("");
               setPrice("");
+              setPayment("Cash");
             }}
           >
             Save Sale
           </button>
         </div>
 
-        {/* CASH REMITTANCE */}
-        <div className="form-container" style={{ marginTop: 30 }}>
-          <h2>Give Cash to Boss</h2>
+        {/* EXPENSE */}
+        <div className="form-container">
+          <h2>Add Expense</h2>
+          <ExpenseForm
+            onSave={async (desc, amount) => {
+              const { data } = await supabase
+                .from("expenses")
+                .insert([{ description: desc, amount, account_id: activeAccount.id }])
+                .select();
 
-          <p>
-            Available Cash:
-            <span className="monofont faded-green">
-              {formatMoney(cashOnHand)}
-            </span>
-          </p>
-
-          <input
-            type="number"
-            value={remitAmount}
-            max={cashOnHand}
-            onChange={(e) => setRemitAmount(e.target.value)}
+              setExpenses([data[0], ...expenses]);
+            }}
           />
+        </div>
+
+        {/* BANK EXPENSE */}
+        <div className="form-container">
+          <h2>Bank Expense</h2>
+
+          <input placeholder="Description" value={bankDesc} onChange={(e) => setBankDesc(e.target.value)} />
+          <input type="number" placeholder="Amount" value={bankAmount} onChange={(e) => setBankAmount(e.target.value)} />
 
           <button
-            className="btn"
-            disabled={cashOnHand <= 0 || !remitAmount}
+            className="btn btn-warning"
             onClick={async () => {
+              const { data } = await supabase
+                .from("bank_expenses")
+                .insert([{ description: bankDesc, amount: bankAmount, account_id: activeAccount.id }])
+                .select();
 
-              if (Number(remitAmount) > cashOnHand) {
-                return alert("Not enough cash available");
-              }
+              setBankExpenses([data[0], ...bankExpenses]);
+              setBankDesc("");
+              setBankAmount("");
+            }}
+          >
+            Save Bank Expense
+          </button>
+        </div>
+
+        {/* REMITTANCE */}
+        <div className="form-container">
+          <h2>Give Cash</h2>
+
+          <p>Available: {formatMoney(cashOnHand)}</p>
+
+          <input type="number" value={remitAmount} onChange={(e) => setRemitAmount(e.target.value)} />
+          <input value={remitNote} onChange={(e) => setRemitNote(e.target.value)} />
+
+          <button
+            className="btn btn-danger"
+            onClick={async () => {
+              if (Number(remitAmount) > cashOnHand) return alert("Too much");
 
               const { data } = await supabase
                 .from("cash_remittances")
                 .insert([{ amount: remitAmount, note: remitNote, account_id: activeAccount.id }])
                 .select();
 
-              setRemittances([...remittances, data[0]]);
+              setRemittances([data[0], ...remittances]);
               setRemitAmount("");
             }}
           >
-            Record Cash Given
+            Send Cash
           </button>
         </div>
 
         {/* SUMMARY */}
-        <div className="summary" style={{ marginTop: 30 }}>
-          <p>Cash On Hand: {formatMoney(cashOnHand)}</p>
-          <p>Bank Balance: {formatMoney(bankBalance)}</p>
-          <p>Total Balance: {formatMoney(totalBalance)}</p>
+        <div className="summary">
+          <p>Cash: {formatMoney(cashOnHand)}</p>
+          <p>Bank: {formatMoney(bankBalance)}</p>
+          <p>Total: {formatMoney(cashOnHand + bankBalance)}</p>
         </div>
-
       </div>
     </>
   );
-      } 
+}
+
+function ExpenseForm({ onSave }) {
+  const [desc, setDesc] = useState("");
+  const [amount, setAmount] = useState("");
+
+  return (
+    <>
+      <input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
+      <input type="number" placeholder="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} />
+
+      <button
+        className="btn btn-primary"
+        onClick={() => {
+          if (!desc || !amount) return alert("Fill all fields");
+          onSave(desc, amount);
+          setDesc("");
+          setAmount("");
+        }}
+      >
+        Save Expense
+      </button>
+    </>
+  );
+}
