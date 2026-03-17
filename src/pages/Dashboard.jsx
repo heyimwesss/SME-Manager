@@ -140,11 +140,6 @@ export default function Dashboard() {
 
       <h1>Dashboard</h1>
 
-      {/* ACCOUNT NAME */}
-      <h2 style={{ textAlign: "center", textTransform: "uppercase" }}>
-        {activeAccount.name}
-      </h2>
-
       {/* SUMMARY CARDS */}
       <div className="cards">
 
