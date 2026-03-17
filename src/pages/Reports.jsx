@@ -40,12 +40,18 @@ const monthEndStr = monthEnd.toISOString().split("T")[0];
 
 useEffect(()=>{
 if(activeAccount){
-fetchSales();
-fetchExpenses();
-fetchBankExpenses();
-fetchRemittances();
+fetchAll();
 }
 },[activeAccount]);
+
+async function fetchAll(){
+await Promise.all([
+fetchSales(),
+fetchExpenses(),
+fetchBankExpenses(),
+fetchRemittances()
+]);
+}
 
 async function fetchSales(){
 const {data} = await supabase
@@ -87,7 +93,7 @@ const {data} = await supabase
 setRemittances(data || []);
 }
 
-/* ---------- PERIOD FILTER ---------- */
+/* ---------- FILTERS ---------- */
 function filterByDate(date){
 if(view==="daily") return date===todayStr;
 if(view==="weekly") return date>=weekStartStr && date<=weekEndStr;
@@ -95,7 +101,6 @@ if(view==="monthly") return date>=monthStartStr && date<=monthEndStr;
 return true;
 }
 
-/* ---------- BEFORE PERIOD (FOR OPENING CASH) ---------- */
 function isBeforePeriod(date){
 if(view==="daily") return date < todayStr;
 if(view==="weekly") return date < weekStartStr;
@@ -103,18 +108,21 @@ if(view==="monthly") return date < monthStartStr;
 return false;
 }
 
-/* ---------- FILTERED DATA ---------- */
+/* ---------- CURRENT DATA ---------- */
 const filteredSales = sales.filter(s=>filterByDate(s.sold_at.split("T")[0]));
 const filteredExpenses = expenses.filter(e=>filterByDate(e.expense_date.split("T")[0]));
 const filteredBankExpenses = bankExpenses.filter(e=>filterByDate(e.created_at.split("T")[0]));
 const filteredRemittances = remittances.filter(r=>filterByDate(r.created_at.split("T")[0]));
 
-/* ---------- PREVIOUS DATA (FOR OPENING CASH) ---------- */
+/* ---------- PREVIOUS DATA ---------- */
 const previousSales = sales.filter(s=>isBeforePeriod(s.sold_at.split("T")[0]));
 const previousExpenses = expenses.filter(e=>isBeforePeriod(e.expense_date.split("T")[0]));
 const previousRemittances = remittances.filter(r=>isBeforePeriod(r.created_at.split("T")[0]));
 
-/* ---------- OPENING CASH ---------- */
+const previousBankSales = sales.filter(s=>isBeforePeriod(s.sold_at.split("T")[0]));
+const previousBankExpenses = bankExpenses.filter(e=>isBeforePeriod(e.created_at.split("T")[0]));
+
+/* ---------- OPENING BALANCES ---------- */
 const openingCash =
 previousSales.reduce(
 (sum,s)=> s.payment_mode==="Cash" ? sum+Number(s.price):sum,0
@@ -122,7 +130,13 @@ previousSales.reduce(
 - previousExpenses.reduce((sum,e)=>sum+Number(e.amount),0)
 - previousRemittances.reduce((sum,r)=>sum+Number(r.amount),0);
 
-/* ---------- CURRENT PERIOD TOTALS ---------- */
+const openingBank =
+previousBankSales.reduce(
+(sum,s)=> s.payment_mode==="Bank" ? sum+Number(s.price):sum,0
+)
+- previousBankExpenses.reduce((sum,e)=>sum+Number(e.amount),0);
+
+/* ---------- CURRENT TOTALS ---------- */
 const totalSales = filteredSales.reduce((sum,s)=>sum+Number(s.price),0);
 
 const cashSales = filteredSales.reduce(
@@ -149,9 +163,11 @@ const cashRemitted = filteredRemittances.reduce(
 const cashBalance =
 openingCash + cashSales - cashExpenses - cashRemitted;
 
-const bankBalance = bankSales - bankExpensesTotal;
+const bankBalance =
+openingBank + bankSales - bankExpensesTotal;
 
-const totalBalance = cashBalance + bankBalance;
+const totalBalance =
+cashBalance + bankBalance;
 
 /* ---------- REPORT RANGE ---------- */
 let reportRange="";
@@ -166,20 +182,20 @@ reportRange=`${today.toLocaleString("default",{month:"long"})} ${today.getFullYe
 
 /* ---------- DOWNLOAD ---------- */
 const saveImage = async ()=>{
-const prevState = showTransactions;
+const prev = showTransactions;
 setShowTransactions(true);
 
 setTimeout(()=>{
 if(reportRef.current){
 toPng(reportRef.current).then((dataUrl)=>{
 download(dataUrl,`report-${view}.png`);
-setShowTransactions(prevState);
+setShowTransactions(prev);
 });
 }
 },300);
 };
 
-if(!activeAccount) return <p>Loading account...</p>;
+if(!activeAccount) return <p>Loading...</p>;
 
 return(
 <>
@@ -197,16 +213,24 @@ return(
 
 <div ref={reportRef} className="receipt-report">
 
-<h2 className="report-title"><b>{activeAccount.name}</b></h2>
+<h2 style={{textAlign:"center",textTransform:"uppercase"}}>
+{activeAccount.name}
+</h2>
+
 <p>{reportRange}</p>
 
 <hr/>
 
-<h3>Opening Balance</h3>
+<h3>Opening Balances</h3>
 
 <div className="line">
 <span>Opening Cash</span>
 <span>{formatMoney(openingCash)}</span>
+</div>
+
+<div className="line">
+<span>Opening Bank</span>
+<span>{formatMoney(openingBank)}</span>
 </div>
 
 <hr/>
@@ -274,15 +298,11 @@ return(
 
 <hr/>
 
-<h3
-style={{cursor:"pointer"}}
-onClick={()=>setShowTransactions(!showTransactions)}
->
+<h3 onClick={()=>setShowTransactions(!showTransactions)} style={{cursor:"pointer"}}>
 Transactions {showTransactions ? "▲":"▼"}
 </h3>
 
 {showTransactions && (
-
 <table className="receipt-table">
 
 <thead>
@@ -333,9 +353,7 @@ Transactions {showTransactions ? "▲":"▼"}
 ))}
 
 </tbody>
-
 </table>
-
 )}
 
 </div>
@@ -347,4 +365,4 @@ Download Report
 </div>
 </>
 );
-  }
+}
