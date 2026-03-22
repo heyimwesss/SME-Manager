@@ -18,19 +18,15 @@ export default function Transactions() {
   const [price, setPrice] = useState("");
   const [payment, setPayment] = useState("Cash");
 
-  // CASH IN FORM
-  const [cashInAmount, setCashInAmount] = useState("");
-  const [cashInNote, setCashInNote] = useState("Cash Added");
-
-  // REMITTANCE
+  // REMITTANCE FORM
   const [remitAmount, setRemitAmount] = useState("");
   const [remitNote, setRemitNote] = useState("Given to boss");
 
-  // BANK EXPENSE
+  // BANK EXPENSE FORM
   const [bankDesc, setBankDesc] = useState("");
   const [bankAmount, setBankAmount] = useState("");
 
-  // DATA
+  // DATA STATES
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [remittances, setRemittances] = useState([]);
@@ -42,18 +38,12 @@ export default function Transactions() {
 
   useEffect(() => {
     if (activeAccount) {
-      fetchAll();
+      fetchSales();
+      fetchExpenses();
+      fetchRemittances();
+      fetchBankExpenses();
     }
   }, [activeAccount]);
-
-  async function fetchAll() {
-    await Promise.all([
-      fetchSales(),
-      fetchExpenses(),
-      fetchRemittances(),
-      fetchBankExpenses(),
-    ]);
-  }
 
   async function fetchSales() {
     const { data } = await supabase
@@ -61,7 +51,6 @@ export default function Transactions() {
       .select("*")
       .eq("account_id", activeAccount.id)
       .order("sold_at", { ascending: false });
-
     setSales(data || []);
   }
 
@@ -71,7 +60,6 @@ export default function Transactions() {
       .select("*")
       .eq("account_id", activeAccount.id)
       .order("expense_date", { ascending: false });
-
     setExpenses(data || []);
   }
 
@@ -81,7 +69,6 @@ export default function Transactions() {
       .select("*")
       .eq("account_id", activeAccount.id)
       .order("created_at", { ascending: false });
-
     setRemittances(data || []);
   }
 
@@ -91,45 +78,97 @@ export default function Transactions() {
       .select("*")
       .eq("account_id", activeAccount.id)
       .order("created_at", { ascending: false });
-
     setBankExpenses(data || []);
   }
 
-  // FILTER
-  const filter = (date) => {
+  // DELETE HANDLERS
+  async function deleteSale(id) {
+    await supabase.from("sales").delete().eq("id", id);
+    setSales(sales.filter((s) => s.id !== id));
+  }
+
+  async function deleteExpense(id) {
+    await supabase.from("expenses").delete().eq("id", id);
+    setExpenses(expenses.filter((e) => e.id !== id));
+  }
+
+  async function deleteRemittance(id) {
+    await supabase.from("cash_remittances").delete().eq("id", id);
+    setRemittances(remittances.filter((r) => r.id !== id));
+  }
+
+  async function deleteBankExpense(id) {
+    await supabase.from("bank_expenses").delete().eq("id", id);
+    setBankExpenses(bankExpenses.filter((b) => b.id !== id));
+  }
+
+  // FILTERS
+  const filteredSales = sales.filter((s) => {
+    const date = s.sold_at.split("T")[0];
     if (view === "today") return date === todayStr;
     if (view === "yesterday") return date === yesterdayStr;
     return date < yesterdayStr;
-  };
+  });
 
-  const before = (date) => {
+  const filteredExpenses = expenses.filter((e) => {
+    const date = e.expense_date.split("T")[0];
+    if (view === "today") return date === todayStr;
+    if (view === "yesterday") return date === yesterdayStr;
+    return date < yesterdayStr;
+  });
+
+  const filteredRemittances = remittances.filter((r) => {
+    const date = r.created_at.split("T")[0];
+    if (view === "today") return date === todayStr;
+    if (view === "yesterday") return date === yesterdayStr;
+    return date < yesterdayStr;
+  });
+
+  const filteredBankExpenses = bankExpenses.filter((b) => {
+    const date = b.created_at.split("T")[0];
+    if (view === "today") return date === todayStr;
+    if (view === "yesterday") return date === yesterdayStr;
+    return date < yesterdayStr;
+  });
+
+  /* ---------- PREVIOUS DATA (OPENING CASH) ---------- */
+  const previousSales = sales.filter((s) => {
+    const date = s.sold_at.split("T")[0];
     if (view === "today") return date < todayStr;
     if (view === "yesterday") return date < yesterdayStr;
     return false;
-  };
+  });
 
-  const filteredSales = sales.filter((s) => filter(s.sold_at.split("T")[0]));
-  const filteredExpenses = expenses.filter((e) => filter(e.expense_date.split("T")[0]));
-  const filteredRemittances = remittances.filter((r) => filter(r.created_at.split("T")[0]));
+  const previousExpenses = expenses.filter((e) => {
+    const date = e.expense_date.split("T")[0];
+    if (view === "today") return date < todayStr;
+    if (view === "yesterday") return date < yesterdayStr;
+    return false;
+  });
 
-  // OPENING CASH
+  const previousRemittances = remittances.filter((r) => {
+    const date = r.created_at.split("T")[0];
+    if (view === "today") return date < todayStr;
+    if (view === "yesterday") return date < yesterdayStr;
+    return false;
+  });
+
   const openingCash =
-    sales.filter((s) => before(s.sold_at.split("T")[0]))
-      .reduce((sum, s) => s.payment_mode === "Cash" ? sum + Number(s.price) : sum, 0)
-    -
-    expenses.filter((e) => before(e.expense_date.split("T")[0]))
-      .reduce((sum, e) => sum + Number(e.amount), 0)
-    -
-    remittances.filter((r) => before(r.created_at.split("T")[0]))
-      .reduce((sum, r) => sum + Number(r.amount), 0);
+    previousSales.reduce(
+      (sum, s) => (s.payment_mode === "Cash" ? sum + Number(s.price) : sum),
+      0
+    ) -
+    previousExpenses.reduce((sum, e) => sum + Number(e.amount), 0) -
+    previousRemittances.reduce((sum, r) => sum + Number(r.amount), 0);
 
   // TOTALS
   const totalCashSales = filteredSales.reduce(
-    (sum, s) => s.payment_mode === "Cash" ? sum + Number(s.price) : sum,
+    (sum, s) => (s.payment_mode === "Cash" ? sum + Number(s.price) : sum),
     0
   );
 
   const totalExpenses = filteredExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+
   const totalRemittances = filteredRemittances.reduce((sum, r) => sum + Number(r.amount), 0);
 
   const cashOnHand =
@@ -140,59 +179,13 @@ export default function Transactions() {
   return (
     <>
       <Navbar />
+
       <div className="page">
         <h1>Transactions - {activeAccount.name}</h1>
 
-        {/* CASH IN */}
-        <div className="form-container">
-          <h2>Add Cash</h2>
-          <div className="form-group">
-            <label>Amount</label>
-            <input
-              type="number"
-              value={cashInAmount}
-              onChange={(e) => setCashInAmount(e.target.value)}
-            />
-          </div>
+        {/* ALL YOUR UI REMAINS EXACTLY THE SAME BELOW */}
 
-          <div className="form-group">
-            <label>Note</label>
-            <input
-              value={cashInNote}
-              onChange={(e) => setCashInNote(e.target.value)}
-            />
-          </div>
-
-          <button
-            className="btn"
-            onClick={async () => {
-              if (!cashInAmount) return alert("Enter amount");
-
-              const { data, error } = await supabase
-                .from("sales")
-                .insert([
-                  {
-                    item_name: cashInNote,
-                    price: cashInAmount,
-                    payment_mode: "Cash",
-                    account_id: activeAccount.id,
-                  },
-                ])
-                .select();
-
-              if (error) return alert(error.message);
-
-              setSales([data[0], ...sales]);
-              setCashInAmount("");
-            }}
-          >
-            Add Cash
-          </button>
-        </div>
-
-        {/* EVERYTHING ELSE REMAINS SAME */}
-
-
+        {/* SALE FORM */}
         <div className="form-container">
           <div className="form-group">
             <label>Item Name</label>
