@@ -199,8 +199,6 @@ export default function Transactions() {
             <label>Payment Mode</label>
             <select value={payment} onChange={(e) => setPayment(e.target.value)}>
               <option>Cash</option>
-              <option>Airtel Money</option>
-              <option>Mpamba</option>
               <option>Bank</option>
             </select>
           </div>
