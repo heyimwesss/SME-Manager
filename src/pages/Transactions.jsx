@@ -131,14 +131,48 @@ export default function Transactions() {
     return date < yesterdayStr;
   });
 
+  /* ---------- PREVIOUS DATA (OPENING CASH) ---------- */
+  const previousSales = sales.filter((s) => {
+    const date = s.sold_at.split("T")[0];
+    if (view === "today") return date < todayStr;
+    if (view === "yesterday") return date < yesterdayStr;
+    return false;
+  });
+
+  const previousExpenses = expenses.filter((e) => {
+    const date = e.expense_date.split("T")[0];
+    if (view === "today") return date < todayStr;
+    if (view === "yesterday") return date < yesterdayStr;
+    return false;
+  });
+
+  const previousRemittances = remittances.filter((r) => {
+    const date = r.created_at.split("T")[0];
+    if (view === "today") return date < todayStr;
+    if (view === "yesterday") return date < yesterdayStr;
+    return false;
+  });
+
+  const openingCash =
+    previousSales.reduce(
+      (sum, s) => (s.payment_mode === "Cash" ? sum + Number(s.price) : sum),
+      0
+    ) -
+    previousExpenses.reduce((sum, e) => sum + Number(e.amount), 0) -
+    previousRemittances.reduce((sum, r) => sum + Number(r.amount), 0);
+
   // TOTALS
   const totalCashSales = filteredSales.reduce(
     (sum, s) => (s.payment_mode === "Cash" ? sum + Number(s.price) : sum),
     0
   );
+
   const totalExpenses = filteredExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+
   const totalRemittances = filteredRemittances.reduce((sum, r) => sum + Number(r.amount), 0);
-  const cashOnHand = totalCashSales - totalExpenses - totalRemittances;
+
+  const cashOnHand =
+    openingCash + totalCashSales - totalExpenses - totalRemittances;
 
   if (!activeAccount) return null;
 
@@ -148,6 +182,8 @@ export default function Transactions() {
 
       <div className="page">
         <h1>Transactions - {activeAccount.name}</h1>
+
+        {/* ALL YOUR UI REMAINS EXACTLY THE SAME BELOW */}
 
         {/* SALE FORM */}
         <div className="form-container">

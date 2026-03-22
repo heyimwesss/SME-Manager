@@ -5,102 +5,148 @@ import Navbar from "../components/Navbar";
 import { useAccount } from "../context/AccountContext";
 
 export default function Dashboard() {
+
   const { activeAccount } = useAccount();
 
   const [sales, setSales] = useState([]);
-  const [expenses, setExpenses] = useState(0);
-  const [remittances, setRemittances] = useState(0);
-  const [bankExpenses, setBankExpenses] = useState(0);
+  const [expenses, setExpenses] = useState([]);
+  const [remittances, setRemittances] = useState([]);
+  const [bankExpenses, setBankExpenses] = useState([]);
 
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
     if (activeAccount) {
-      getSales();
-      getExpenses();
-      getRemittances();
-      getBankExpenses();
+      fetchAllData();
     }
   }, [activeAccount]);
 
-  // SALES
-  async function getSales() {
+  async function fetchAllData() {
+    await Promise.all([
+      fetchSales(),
+      fetchExpenses(),
+      fetchRemittances(),
+      fetchBankExpenses()
+    ]);
+  }
+
+  async function fetchSales() {
     const { data } = await supabase
       .from("sales")
       .select("*")
       .eq("account_id", activeAccount.id)
-      .gte("sold_at", today)
-      .order("sold_at", { ascending: false });
+      .order("sold_at", { ascending: true });
 
     setSales(data || []);
   }
 
-  // CASH EXPENSES
-  async function getExpenses() {
+  async function fetchExpenses() {
     const { data } = await supabase
       .from("expenses")
       .select("*")
       .eq("account_id", activeAccount.id)
-      .gte("expense_date", today);
+      .order("expense_date", { ascending: true });
 
-    let total = 0;
-    data?.forEach(e => (total += Number(e.amount)));
-    setExpenses(total);
+    setExpenses(data || []);
   }
 
-  // CASH REMITTANCES
-  async function getRemittances() {
+  async function fetchRemittances() {
     const { data } = await supabase
       .from("cash_remittances")
       .select("*")
       .eq("account_id", activeAccount.id)
-      .gte("created_at", today);
+      .order("created_at", { ascending: true });
 
-    let total = 0;
-    data?.forEach(r => (total += Number(r.amount)));
-    setRemittances(total);
+    setRemittances(data || []);
   }
 
-  // BANK EXPENSES
-  async function getBankExpenses() {
+  async function fetchBankExpenses() {
     const { data } = await supabase
       .from("bank_expenses")
       .select("*")
       .eq("account_id", activeAccount.id)
-      .gte("created_at", today);
+      .order("created_at", { ascending: true });
 
-    let total = 0;
-    data?.forEach(b => (total += Number(b.amount)));
-    setBankExpenses(total);
+    setBankExpenses(data || []);
   }
 
-  // SALES TOTALS
-  const totalSales = sales.reduce((sum, s) => sum + Number(s.price), 0);
+  /* ---------- DATE HELPERS ---------- */
+  const isToday = (date) => date === today;
+  const isBeforeToday = (date) => date < today;
 
-  const cashSales = sales.reduce(
-    (sum, s) => (s.payment_mode === "Cash" ? sum + Number(s.price) : sum),
+  /* ---------- TODAY DATA ---------- */
+  const todaySales = sales.filter(s => isToday(s.sold_at.split("T")[0]));
+  const todayExpenses = expenses.filter(e => isToday(e.expense_date.split("T")[0]));
+  const todayRemittances = remittances.filter(r => isToday(r.created_at.split("T")[0]));
+  const todayBankExpenses = bankExpenses.filter(b => isToday(b.created_at.split("T")[0]));
+
+  /* ---------- PREVIOUS DATA (FOR OPENING CASH) ---------- */
+  const prevSales = sales.filter(s => isBeforeToday(s.sold_at.split("T")[0]));
+  const prevExpenses = expenses.filter(e => isBeforeToday(e.expense_date.split("T")[0]));
+  const prevRemittances = remittances.filter(r => isBeforeToday(r.created_at.split("T")[0]));
+
+  /* ---------- OPENING CASH ---------- */
+  const openingCash =
+    prevSales.reduce(
+      (sum, s) => s.payment_mode === "Cash" ? sum + Number(s.price) : sum,
+      0
+    )
+    - prevExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
+    - prevRemittances.reduce((sum, r) => sum + Number(r.amount), 0);
+
+  /* ---------- TODAY TOTALS ---------- */
+  const totalSales = todaySales.reduce((sum, s) => sum + Number(s.price), 0);
+
+  const cashSales = todaySales.reduce(
+    (sum, s) => s.payment_mode === "Cash" ? sum + Number(s.price) : sum,
     0
   );
 
-  const bankSales = sales.reduce(
-    (sum, s) => (s.payment_mode === "Bank" ? sum + Number(s.price) : sum),
+  const bankSales = todaySales.reduce(
+    (sum, s) => s.payment_mode === "Bank" ? sum + Number(s.price) : sum,
     0
   );
 
-  // BALANCES
-  const cashOnHand = cashSales - expenses - remittances;
-  const bankBalance = bankSales - bankExpenses;
-  const totalBalance = cashOnHand + bankBalance;
+  const cashExpenses = todayExpenses.reduce(
+    (sum, e) => sum + Number(e.amount),
+    0
+  );
+
+  const bankExpensesTotal = todayBankExpenses.reduce(
+    (sum, b) => sum + Number(b.amount),
+    0
+  );
+
+  const cashRemitted = todayRemittances.reduce(
+    (sum, r) => sum + Number(r.amount),
+    0
+  );
+
+  /* ---------- FINAL BALANCES ---------- */
+  const cashOnHand =
+    openingCash + cashSales - cashExpenses - cashRemitted;
+
+  const bankBalance =
+    bankSales - bankExpensesTotal;
+
+  const totalBalance =
+    cashOnHand + bankBalance;
 
   if (!activeAccount) return <p>Loading account...</p>;
 
   return (
     <div className="page">
       <Navbar />
+
       <h1>Dashboard</h1>
 
       {/* SUMMARY CARDS */}
       <div className="cards">
+
+        <div className="card">
+          <h3>Opening Cash</h3>
+          <p className="amount">{formatMoney(openingCash)}</p>
+        </div>
 
         <div className="card card-sales">
           <h3>Today's Sales</h3>
@@ -108,23 +154,18 @@ export default function Dashboard() {
         </div>
 
         <div className="card card-expenses">
-          <h3>Today's Expenses</h3>
-          <p className="amount">{formatMoney(expenses)}</p>
+          <h3>Cash Expenses</h3>
+          <p className="amount">{formatMoney(cashExpenses)}</p>
         </div>
 
         <div className="card card-remittance">
           <h3>Cash Given to Boss</h3>
-          <p className="amount">{formatMoney(remittances)}</p>
+          <p className="amount">{formatMoney(cashRemitted)}</p>
         </div>
 
         <div className="card card-bank-expenses">
           <h3>Bank Expenses</h3>
-          <p className="amount">{formatMoney(bankExpenses)}</p>
-        </div>
-
-        <div className="card card-profit">
-          <h3>Profit Today</h3>
-          <p className="amount">{formatMoney(totalSales - expenses)}</p>
+          <p className="amount">{formatMoney(bankExpensesTotal)}</p>
         </div>
 
         <div className="card card-cash-on-hand">
@@ -157,72 +198,64 @@ export default function Dashboard() {
         <table className="transactions-table">
           <thead>
             <tr>
+              <th>Type</th>
               <th>Item / Description</th>
-              <th>Amount</th>
               <th>Payment</th>
+              <th>Amount</th>
             </tr>
           </thead>
 
           <tbody>
-            {sales.length === 0 && (
+
+            {todaySales.map(s => (
+              <tr key={"s" + s.id}>
+                <td>Sale</td>
+                <td>{s.item_name}</td>
+                <td>{s.payment_mode}</td>
+                <td className="green">{formatMoney(s.price)}</td>
+              </tr>
+            ))}
+
+            {todayExpenses.map(e => (
+              <tr key={"e" + e.id}>
+                <td>Expense</td>
+                <td>{e.description}</td>
+                <td>Cash</td>
+                <td className="red">-{formatMoney(e.amount)}</td>
+              </tr>
+            ))}
+
+            {todayBankExpenses.map(b => (
+              <tr key={"b" + b.id}>
+                <td>Expense</td>
+                <td>{b.description}</td>
+                <td>Bank</td>
+                <td className="red">-{formatMoney(b.amount)}</td>
+              </tr>
+            ))}
+
+            {todayRemittances.map(r => (
+              <tr key={"r" + r.id}>
+                <td>Remit</td>
+                <td>{r.note}</td>
+                <td>Cash</td>
+                <td className="red">-{formatMoney(r.amount)}</td>
+              </tr>
+            ))}
+
+            {todaySales.length === 0 &&
+             todayExpenses.length === 0 &&
+             todayRemittances.length === 0 && (
               <tr>
-                <td colSpan="3">No sales recorded today</td>
+                <td colSpan="4">No transactions today</td>
               </tr>
             )}
 
-            {sales.map(sale => (
-              <tr key={sale.id}>
-                <td>{sale.item_name}</td>
-                <td>{formatMoney(sale.price)}</td>
-                <td>{sale.payment_mode}</td>
-              </tr>
-            ))}
           </tbody>
         </table>
 
-        {/* MOBILE VIEW */}
-        <div className="transactions-cards">
-          {sales.map(sale => (
-            <div className="transaction-card" key={"s" + sale.id}>
-              <p><strong>Item:</strong> {sale.item_name}</p>
-              <p><strong>Price:</strong> {formatMoney(sale.price)}</p>
-              <p><strong>Payment:</strong> {sale.payment_mode}</p>
-            </div>
-          ))}
-          {sales.length === 0 && <p>No sales recorded today</p>}
-        </div>
-
-        {/* SUMMARY */}
-        <div className="summary">
-          <p>Total Cash Sales: {formatMoney(cashSales)}</p>
-          <p>Total Bank Sales: {formatMoney(bankSales)}</p>
-          <p>Total Expenses: {formatMoney(expenses)}</p>
-          <p>Cash Given to Boss: {formatMoney(remittances)}</p>
-          <p>Bank Expenses: {formatMoney(bankExpenses)}</p>
-
-          <p>
-            Cash On Hand:
-            <span className={`monofont ${cashOnHand >= 0 ? "faded-green" : "faded-red"}`}>
-              {" "} {formatMoney(cashOnHand)}
-            </span>
-          </p>
-
-          <p>
-            Bank Balance:
-            <span className={`monofont ${bankBalance >= 0 ? "faded-green" : "faded-red"}`}>
-              {" "} {formatMoney(bankBalance)}
-            </span>
-          </p>
-
-          <p>
-            Total Balance:
-            <span className={`monofont ${totalBalance >= 0 ? "faded-green" : "faded-red"}`}>
-              {" "} {formatMoney(totalBalance)}
-            </span>
-          </p>
-
-        </div>
       </div>
+
     </div>
   );
-}
+    }
