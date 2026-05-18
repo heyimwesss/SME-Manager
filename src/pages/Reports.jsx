@@ -23,6 +23,11 @@ const reportRef = useRef();
 const today = new Date();
 const todayStr = today.toISOString().split("T")[0];
 
+/* ---------- CUSTOM DATES ---------- */
+const [customStartDate,setCustomStartDate] = useState(todayStr);
+const [customEndDate,setCustomEndDate] = useState(todayStr);
+
+/* ---------- WEEK ---------- */
 const weekStart = new Date(today);
 weekStart.setDate(today.getDate() - today.getDay());
 
@@ -32,6 +37,7 @@ weekEnd.setDate(weekStart.getDate() + 6);
 const weekStartStr = weekStart.toISOString().split("T")[0];
 const weekEndStr = weekEnd.toISOString().split("T")[0];
 
+/* ---------- MONTH ---------- */
 const monthStart = new Date(today.getFullYear(),today.getMonth(),1);
 const monthEnd = new Date(today.getFullYear(),today.getMonth()+1,0);
 
@@ -54,6 +60,7 @@ fetchRemittances()
 }
 
 async function fetchSales(){
+
 const {data} = await supabase
 .from("sales")
 .select("*")
@@ -64,6 +71,7 @@ setSales(data || []);
 }
 
 async function fetchExpenses(){
+
 const {data} = await supabase
 .from("expenses")
 .select("*")
@@ -74,6 +82,7 @@ setExpenses(data || []);
 }
 
 async function fetchBankExpenses(){
+
 const {data} = await supabase
 .from("bank_expenses")
 .select("*")
@@ -84,6 +93,7 @@ setBankExpenses(data || []);
 }
 
 async function fetchRemittances(){
+
 const {data} = await supabase
 .from("cash_remittances")
 .select("*")
@@ -93,73 +103,169 @@ const {data} = await supabase
 setRemittances(data || []);
 }
 
+/* ---------- PERIOD HELPERS ---------- */
+
+function getPeriodStart(){
+
+if(view==="daily"){
+return todayStr;
+}
+
+if(view==="weekly"){
+return weekStartStr;
+}
+
+if(view==="monthly"){
+return monthStartStr;
+}
+
+if(view==="custom"){
+return customStartDate;
+}
+
+return todayStr;
+}
+
+function getPeriodEnd(){
+
+if(view==="daily"){
+return todayStr;
+}
+
+if(view==="weekly"){
+return weekEndStr;
+}
+
+if(view==="monthly"){
+return monthEndStr;
+}
+
+if(view==="custom"){
+return customEndDate;
+}
+
+return todayStr;
+}
+
 /* ---------- FILTERS ---------- */
+
 function filterByDate(date){
-if(view==="daily") return date===todayStr;
-if(view==="weekly") return date>=weekStartStr && date<=weekEndStr;
-if(view==="monthly") return date>=monthStartStr && date<=monthEndStr;
-return true;
+
+const start = getPeriodStart();
+const end = getPeriodEnd();
+
+return date >= start && date <= end;
 }
 
 function isBeforePeriod(date){
-if(view==="daily") return date < todayStr;
-if(view==="weekly") return date < weekStartStr;
-if(view==="monthly") return date < monthStartStr;
-return false;
+
+const start = getPeriodStart();
+
+return date < start;
 }
 
 /* ---------- CURRENT DATA ---------- */
-const filteredSales = sales.filter(s=>filterByDate(s.sold_at.split("T")[0]));
-const filteredExpenses = expenses.filter(e=>filterByDate(e.expense_date.split("T")[0]));
-const filteredBankExpenses = bankExpenses.filter(e=>filterByDate(e.created_at.split("T")[0]));
-const filteredRemittances = remittances.filter(r=>filterByDate(r.created_at.split("T")[0]));
+
+const filteredSales = sales.filter(
+s=>filterByDate(s.sold_at.split("T")[0])
+);
+
+const filteredExpenses = expenses.filter(
+e=>filterByDate(e.expense_date.split("T")[0])
+);
+
+const filteredBankExpenses = bankExpenses.filter(
+e=>filterByDate(e.created_at.split("T")[0])
+);
+
+const filteredRemittances = remittances.filter(
+r=>filterByDate(r.created_at.split("T")[0])
+);
 
 /* ---------- PREVIOUS DATA ---------- */
-const previousSales = sales.filter(s=>isBeforePeriod(s.sold_at.split("T")[0]));
-const previousExpenses = expenses.filter(e=>isBeforePeriod(e.expense_date.split("T")[0]));
-const previousRemittances = remittances.filter(r=>isBeforePeriod(r.created_at.split("T")[0]));
 
-const previousBankSales = sales.filter(s=>isBeforePeriod(s.sold_at.split("T")[0]));
-const previousBankExpenses = bankExpenses.filter(e=>isBeforePeriod(e.created_at.split("T")[0]));
+const previousSales = sales.filter(
+s=>isBeforePeriod(s.sold_at.split("T")[0])
+);
+
+const previousExpenses = expenses.filter(
+e=>isBeforePeriod(e.expense_date.split("T")[0])
+);
+
+const previousRemittances = remittances.filter(
+r=>isBeforePeriod(r.created_at.split("T")[0])
+);
+
+const previousBankSales = sales.filter(
+s=>isBeforePeriod(s.sold_at.split("T")[0])
+);
+
+const previousBankExpenses = bankExpenses.filter(
+e=>isBeforePeriod(e.created_at.split("T")[0])
+);
 
 /* ---------- OPENING BALANCES ---------- */
+
 const openingCash =
+
 previousSales.reduce(
-(sum,s)=> s.payment_mode==="Cash" ? sum+Number(s.price):sum,0
-)
-- previousExpenses.reduce((sum,e)=>sum+Number(e.amount),0)
-- previousRemittances.reduce((sum,r)=>sum+Number(r.amount),0);
+(sum,s)=> s.payment_mode==="Cash"
+? sum + Number(s.price)
+: sum
+,0)
+
+- previousExpenses.reduce(
+(sum,e)=> sum + Number(e.amount)
+,0)
+
+- previousRemittances.reduce(
+(sum,r)=> sum + Number(r.amount)
+,0);
 
 const openingBank =
+
 previousBankSales.reduce(
-(sum,s)=> s.payment_mode==="Bank" ? sum+Number(s.price):sum,0
-)
-- previousBankExpenses.reduce((sum,e)=>sum+Number(e.amount),0);
+(sum,s)=> s.payment_mode==="Bank"
+? sum + Number(s.price)
+: sum
+,0)
+
+- previousBankExpenses.reduce(
+(sum,e)=> sum + Number(e.amount)
+,0);
 
 /* ---------- CURRENT TOTALS ---------- */
-const totalSales = filteredSales.reduce((sum,s)=>sum+Number(s.price),0);
+
+const totalSales = filteredSales.reduce(
+(sum,s)=> sum + Number(s.price)
+,0);
 
 const cashSales = filteredSales.reduce(
-(sum,s)=> s.payment_mode==="Cash" ? sum+Number(s.price):sum,0
-);
+(sum,s)=> s.payment_mode==="Cash"
+? sum + Number(s.price)
+: sum
+,0);
 
 const bankSales = filteredSales.reduce(
-(sum,s)=> s.payment_mode==="Bank" ? sum+Number(s.price):sum,0
-);
+(sum,s)=> s.payment_mode==="Bank"
+? sum + Number(s.price)
+: sum
+,0);
 
 const cashExpenses = filteredExpenses.reduce(
-(sum,e)=>sum+Number(e.amount),0
-);
+(sum,e)=> sum + Number(e.amount)
+,0);
 
 const bankExpensesTotal = filteredBankExpenses.reduce(
-(sum,e)=>sum+Number(e.amount),0
-);
+(sum,e)=> sum + Number(e.amount)
+,0);
 
 const cashRemitted = filteredRemittances.reduce(
-(sum,r)=>sum+Number(r.amount),0
-);
+(sum,r)=> sum + Number(r.amount)
+,0);
 
 /* ---------- FINAL BALANCES ---------- */
+
 const cashBalance =
 openingCash + cashSales - cashExpenses - cashRemitted;
 
@@ -170,50 +276,127 @@ const totalBalance =
 cashBalance + bankBalance;
 
 /* ---------- REPORT RANGE ---------- */
-let reportRange="";
 
-if(view==="daily") reportRange=new Date(todayStr).toLocaleDateString();
+let reportRange = "";
 
-if(view==="weekly")
-reportRange=`${new Date(weekStartStr).toLocaleDateString()} - ${new Date(weekEndStr).toLocaleDateString()}`;
+if(view==="daily"){
+reportRange = new Date(todayStr).toLocaleDateString();
+}
 
-if(view==="monthly")
-reportRange=`${today.toLocaleString("default",{month:"long"})} ${today.getFullYear()}`;
+if(view==="weekly"){
+reportRange =
+`${new Date(weekStartStr).toLocaleDateString()}
+ - 
+${new Date(weekEndStr).toLocaleDateString()}`;
+}
+
+if(view==="monthly"){
+reportRange =
+`${today.toLocaleString("default",{month:"long"})}
+ ${today.getFullYear()}`;
+}
+
+if(view==="custom"){
+reportRange =
+`${new Date(customStartDate).toLocaleDateString()}
+ -
+${new Date(customEndDate).toLocaleDateString()}`;
+}
 
 /* ---------- DOWNLOAD ---------- */
+
 const saveImage = async ()=>{
+
 const prev = showTransactions;
+
 setShowTransactions(true);
 
 setTimeout(()=>{
+
 if(reportRef.current){
+
 toPng(reportRef.current).then((dataUrl)=>{
+
 download(dataUrl,`report-${view}.png`);
+
 setShowTransactions(prev);
+
 });
+
 }
+
 },300);
+
 };
 
 if(!activeAccount) return <p>Loading...</p>;
 
 return(
 <>
+
 <Navbar/>
 
 <div className="page">
 
 <h1>Financial Report</h1>
 
-<select value={view} onChange={(e)=>setView(e.target.value)}>
+<select
+value={view}
+onChange={(e)=>setView(e.target.value)}
+>
+
 <option value="daily">Daily</option>
+
 <option value="weekly">Weekly</option>
+
 <option value="monthly">Monthly</option>
+
+<option value="custom">Custom Range</option>
+
 </select>
+
+{/* ---------- CUSTOM RANGE ---------- */}
+
+{view==="custom" && (
+
+<div className="custom-dates">
+
+<div>
+
+<label>Start Date</label>
+
+<input
+type="date"
+value={customStartDate}
+onChange={(e)=>setCustomStartDate(e.target.value)}
+/>
+
+</div>
+
+<div>
+
+<label>End Date</label>
+
+<input
+type="date"
+value={customEndDate}
+onChange={(e)=>setCustomEndDate(e.target.value)}
+/>
+
+</div>
+
+</div>
+
+)}
 
 <div ref={reportRef} className="receipt-report">
 
-<h2 style={{textAlign:"center",textTransform:"uppercase"}}>
+<h2
+style={{
+textAlign:"center",
+textTransform:"uppercase"
+}}
+>
 {activeAccount.name}
 </h2>
 
@@ -278,10 +461,13 @@ return(
 <hr/>
 
 <div className="cash-highlight">
+
 <div>CASH ON HAND</div>
+
 <div className="cash-amount">
 {formatMoney(cashBalance)}
 </div>
+
 </div>
 
 <hr/>
@@ -298,20 +484,26 @@ return(
 
 <hr/>
 
-<h3 onClick={()=>setShowTransactions(!showTransactions)} style={{cursor:"pointer"}}>
+<h3
+onClick={()=>setShowTransactions(!showTransactions)}
+style={{cursor:"pointer"}}
+>
 Transactions {showTransactions ? "▲":"▼"}
 </h3>
 
 {showTransactions && (
+
 <table className="receipt-table">
 
 <thead>
+
 <tr>
 <th>Type</th>
 <th>Item</th>
 <th>Pay</th>
 <th>Amt</th>
 </tr>
+
 </thead>
 
 <tbody>
@@ -321,7 +513,9 @@ Transactions {showTransactions ? "▲":"▼"}
 <td>Sale</td>
 <td>{s.item_name}</td>
 <td>{s.payment_mode}</td>
-<td className="green">{formatMoney(s.price)}</td>
+<td className="green">
+{formatMoney(s.price)}
+</td>
 </tr>
 ))}
 
@@ -330,7 +524,9 @@ Transactions {showTransactions ? "▲":"▼"}
 <td>Expense</td>
 <td>{e.description}</td>
 <td>Cash</td>
-<td className="red">-{formatMoney(e.amount)}</td>
+<td className="red">
+-{formatMoney(e.amount)}
+</td>
 </tr>
 ))}
 
@@ -339,7 +535,9 @@ Transactions {showTransactions ? "▲":"▼"}
 <td>Expense</td>
 <td>{e.description}</td>
 <td>Bank</td>
-<td className="red">-{formatMoney(e.amount)}</td>
+<td className="red">
+-{formatMoney(e.amount)}
+</td>
 </tr>
 ))}
 
@@ -348,12 +546,16 @@ Transactions {showTransactions ? "▲":"▼"}
 <td>Remit</td>
 <td>{r.note}</td>
 <td>Cash</td>
-<td className="red">-{formatMoney(r.amount)}</td>
+<td className="red">
+-{formatMoney(r.amount)}
+</td>
 </tr>
 ))}
 
 </tbody>
+
 </table>
+
 )}
 
 </div>
@@ -363,6 +565,9 @@ Download Report
 </button>
 
 </div>
+
 </>
+
 );
+
 }
