@@ -5,6 +5,36 @@ import { useAccount } from "../context/AccountContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
+
+  function MoneyInput({ value, onChange, placeholder = "0" }) {
+  const formatNumber = (val) => {
+    if (!val) return "";
+
+    const cleaned = val.toString().replace(/,/g, "");
+
+    if (isNaN(cleaned)) return "";
+
+    return Number(cleaned).toLocaleString();
+  };
+
+  return (
+    <div className="currency-input">
+      <span>MWK</span>
+
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={formatNumber(value)}
+        onChange={(e) => {
+          const raw = e.target.value.replace(/,/g, "");
+          if (/^\d*$/.test(raw)) {
+            onChange(raw);
+          }
+        }}
+      />
+    </div>
+  );
+}
 export default function Transactions() {
   const { activeAccount } = useAccount();
   const navigate = useNavigate();
@@ -13,6 +43,8 @@ export default function Transactions() {
     if (!activeAccount) navigate("/accounts");
   }, [activeAccount, navigate]);
 
+
+  
   // SALE FORM
   const [item, setItem] = useState("");
   const [price, setPrice] = useState("");
@@ -193,8 +225,10 @@ export default function Transactions() {
           </div>
           <div className="form-group">
             <label>Price</label>
-            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
-          </div>
+<MoneyInput
+  value={price}
+  onChange={setPrice}
+/>          </div>
           <div className="form-group">
             <label>Payment Mode</label>
             <select value={payment} onChange={(e) => setPayment(e.target.value)}>
@@ -242,12 +276,15 @@ export default function Transactions() {
           <h2>Bank Expense</h2>
           <div className="form-group">
             <label>Description</label>
-            <input value={bankDesc} onChange={(e) => setBankDesc(e.target.value)} />
-          </div>
+                        <input value={bankDesc} onChange={(e) => setBankDesc(e.target.value)} />
+
+       </div>
           <div className="form-group">
             <label>Amount</label>
-            <input type="number" value={bankAmount} onChange={(e) => setBankAmount(e.target.value)} />
-          </div>
+<MoneyInput
+  value={bankAmount}
+  onChange={setBankAmount}
+/>             </div>
           <button
             className="btn"
             onClick={async () => {
@@ -278,12 +315,10 @@ export default function Transactions() {
           </p>
           <div className="form-group">
             <label>Amount</label>
-            <input
-              type="number"
-              value={remitAmount}
-              max={cashOnHand}
-              onChange={(e) => setRemitAmount(e.target.value)}
-            />
+<MoneyInput
+  value={remitAmount}
+  onChange={setRemitAmount}
+/>
           </div>
           <div className="form-group">
             <label>Note</label>

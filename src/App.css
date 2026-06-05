@@ -46,10 +46,40 @@ body {
   text-decoration: none;
   background: none;
   border: none;
-  cursor: pointer;
+  cursor: default;
   font-size: 16px;
 }
 
+.currency-input {
+  position: relative;
+  width: 100%;
+}
+
+.currency-input span {
+  position: absolute;
+  top: 6px;
+  left: 14px;
+
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.currency-input input {
+  width: 100%;
+  padding: 22px 14px 10px 14px;
+
+  font-size: 20px;
+  font-weight: 600;
+
+  text-align: right;
+
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
 /* Hamburger button */
 .hamburger {
   display: none;
