@@ -464,12 +464,19 @@ function ExpenseForm({ onSave }) {
     <>
       <div className="form-group">
         <label>Description</label>
-        <input value={desc} onChange={(e) => setDesc(e.target.value)} />
+        <input
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+        />
       </div>
 
       <div className="form-group">
         <label>Amount</label>
-        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+
+        <MoneyInput
+          value={amount}
+          onChange={setAmount}
+        />
       </div>
 
       <button
