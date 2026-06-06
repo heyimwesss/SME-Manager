@@ -225,15 +225,14 @@ body {
 
 .receipt-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
-  font-size: 13px;
 }
 
 .receipt-table th,
 .receipt-table td {
-  padding: 8px;
-  text-align: left;
-  word-break: break-word;
+  word-wrap: break-word;
+  font-size: 12px;
 }
 @media (max-width: 600px) {
   .receipt-report {
@@ -253,8 +252,19 @@ body {
   }
 }
 .export-mode .receipt-report {
-  width: 794px !important;  /* A4 width in pixels at 96 DPI */
-  max-width: 794px !important;
+  width: 100%;
+  max-width: 420px;   /* 👈 phone width baseline */
+  margin: 0 auto;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.export-mode {
+  overflow-x: hidden;
+}
+
+.export-mode .page {
+  display: flex;
+  justify-content: center;
 }
 
 .download-buttons {
