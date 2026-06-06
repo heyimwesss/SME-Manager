@@ -195,20 +195,54 @@ body {
 }
 
 .receipt-report {
-  width: 800px;
-  background: white;
-  color: black;
-  box-sizing: border-box;
-}
-
-table {
   width: 100%;
-  table-layout: fixed;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 16px;
+  box-sizing: border-box;
+  background: white;
+}
+.page {
+  overflow-x: hidden;
+}
+.line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-td, th {
+.line span {
   word-break: break-word;
-  white-space: normal;
+}
+
+.receipt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.receipt-table th,
+.receipt-table td {
+  padding: 8px;
+  text-align: left;
+  word-break: break-word;
+}
+@media (max-width: 600px) {
+  .receipt-report {
+    max-width: 100%;
+    padding: 12px;
+  }
+
+  .line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .receipt-table {
+    font-size: 12px;
+  }
 }
 
 .download-buttons {
