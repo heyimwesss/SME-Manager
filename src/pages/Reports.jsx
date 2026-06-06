@@ -1,14 +1,57 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../services/supabase";
 import { formatMoney } from "../utils/formatMoney";
-import { toPng } from "html-to-image";
-import download from "downloadjs";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { useAccount } from "../context/AccountContext";
 import Navbar from "../components/Navbar";
+
 
 export default function Reports() {
 
 const { activeAccount } = useAccount();
+
+const downloadPDF = async () => {
+  const input = reportRef.current;
+
+  const prev = showTransactions;
+  setShowTransactions(true);
+
+  setTimeout(async () => {
+    const canvas = await html2canvas(input, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    const imgWidth = pdfWidth;
+    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pdfHeight;
+
+    while (heightLeft > 0) {
+      position -= pdfHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+    }
+
+    pdf.save(`report-${view}.pdf`);
+
+    setShowTransactions(prev);
+  }, 300);
+};
 
 const [sales,setSales] = useState([]);
 const [expenses,setExpenses] = useState([]);
@@ -17,6 +60,7 @@ const [remittances,setRemittances] = useState([]);
 
 const [view,setView] = useState("daily");
 const [showTransactions,setShowTransactions] = useState(false);
+const [exportMode, setExportMode] = useState(false);
 
 const reportRef = useRef();
 
@@ -303,30 +347,37 @@ reportRange =
 ${new Date(customEndDate).toLocaleDateString()}`;
 }
 
+
 /* ---------- DOWNLOAD ---------- */
 
-const saveImage = async ()=>{
+const downloadImage = async () => {
+  const prev = showTransactions;
 
-const prev = showTransactions;
+  setExportMode(true);
+  setShowTransactions(true);
 
-setShowTransactions(true);
+  // wait for DOM to fully re-render in export mode
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
 
-setTimeout(()=>{
+  const canvas = await html2canvas(reportRef.current, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: "#ffffff",
+    scrollX: 0,
+    scrollY: 0,
+    windowWidth: 794, // 🚨 locks rendering width
+  });
 
-if(reportRef.current){
+  const imgData = canvas.toDataURL("image/png");
 
-toPng(reportRef.current).then((dataUrl)=>{
+  const link = document.createElement("a");
+  link.href = imgData;
+  link.download = `report-${view}.png`;
+  link.click();
 
-download(dataUrl,`report-${view}.png`);
-
-setShowTransactions(prev);
-
-});
-
-}
-
-},300);
-
+  setExportMode(false);
+  setShowTransactions(prev);
 };
 
 if(!activeAccount) return <p>Loading...</p>;
@@ -335,9 +386,7 @@ return(
 <>
 
 <Navbar/>
-
-<div className="page">
-
+<div className={`page ${exportMode ? "export-mode" : ""}`}>    
 <h1>Financial Report</h1>
 
 <select
@@ -560,9 +609,15 @@ Transactions {showTransactions ? "▲":"▼"}
 
 </div>
 
-<button onClick={saveImage}>
-Download Report
+<div className="download-buttons">
+<button onClick={downloadImage}>
+  Download PNG
 </button>
+
+  <button onClick={downloadPDF}>
+    Download PDF
+  </button>
+</div>
 
 </div>
 

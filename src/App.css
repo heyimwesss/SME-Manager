@@ -50,6 +50,287 @@ body {
   font-size: 16px;
 }
 
+.container {
+  padding: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  transition: 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-badge {
+  color: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.actions {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+.btn-approve {
+  background: #16a34a;
+  color: white;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-disable {
+  background: #ef4444;
+  color: white;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-approve:hover,
+.btn-disable:hover {
+  opacity: 0.85;
+}
+
+.container {
+  padding: 20px;
+}
+
+.admin-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.admin-controls input,
+.admin-controls select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 15px;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: white;
+  text-transform: uppercase;
+}
+
+.badge.active {
+  background: #16a34a;
+}
+
+.badge.pending {
+  background: #f59e0b;
+}
+
+.badge.disabled {
+  background: #ef4444;
+}
+
+.actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn.approve {
+  background: #16a34a;
+  color: white;
+}
+
+.btn.disable {
+  background: #ef4444;
+  color: white;
+}
+
+.receipt-report {
+  width: 800px;
+  background: white;
+  color: black;
+  box-sizing: border-box;
+}
+
+table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+td, th {
+  word-break: break-word;
+  white-space: normal;
+}
+
+.download-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+/* Base button style */
+.download-buttons button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease-in-out;
+}
+
+/* PNG button */
+.download-buttons button:first-child {
+  background: #16a34a;
+  color: white;
+}
+
+.download-buttons button:first-child:hover {
+  background: #12833c;
+  transform: translateY(-1px);
+}
+
+/* PDF button */
+.download-buttons button:last-child {
+  background: #2563eb;
+  color: white;
+}
+
+.download-buttons button:last-child:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+  .download-buttons {
+    justify-content: center;
+  }
+
+  .download-buttons button {
+    width: 100%;
+  }
+}
+
+/* container spacing (optional if you want alignment control) */
+.page select {
+  width: 220px;
+  padding: 10px 12px;
+  margin: 10px 0 20px 0;
+
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+
+  background-color: #ffffff;
+  color: #111827;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  outline: none;
+  cursor: pointer;
+
+  transition: all 0.2s ease-in-out;
+}
+
+/* hover state */
+.page select:hover {
+  border-color: #9ca3af;
+}
+
+/* focus state */
+.page select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* mobile responsiveness */
+@media (max-width: 600px) {
+  .page select {
+    width: 100%;
+  }
+}
+
+.alert {
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* error */
+.alert.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* success */
+.alert.success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+/* info */
+.alert.info {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
 .currency-input {
   position: relative;
   width: 100%;

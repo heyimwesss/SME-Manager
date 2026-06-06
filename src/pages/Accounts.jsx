@@ -1,101 +1,119 @@
-// src/pages/Accounts.jsx
 import { useState, useEffect } from "react";
 import { supabase } from "../services/supabase";
 import { useAccount } from "../context/AccountContext";
 import bcrypt from "bcryptjs";
-import Navbar from "../components/Navbar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function Accounts() {
   const { activeAccount, login } = useAccount();
   const navigate = useNavigate();
 
-  const [accounts, setAccounts] = useState([]);
-  const [selectedAccount, setSelectedAccount] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Redirect if already logged in
+const [notification, setNotification] = useState({
+  type: "", // "error" | "success" | "info"
+  message: ""
+});
+
+useEffect(() => {
+  if (notification.message) {
+    const t = setTimeout(() => {
+      setNotification({ type: "", message: "" });
+    }, 5000);
+
+    return () => clearTimeout(t);
+  }
+}, [notification]);
+
   useEffect(() => {
     if (activeAccount) {
       navigate("/dashboard");
     }
   }, [activeAccount, navigate]);
 
-  // Fetch accounts
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
-
-  async function fetchAccounts() {
-    const { data, error } = await supabase
-      .from("accounts")
-      .select("*")
-      .order("name");
-
-    if (error) console.log(error);
-    else setAccounts(data || []);
-  }
-
   async function handleLogin() {
-    if (!selectedAccount || !loginPassword) {
-      setErrorMsg("Select an account and enter password");
-      return;
+    setErrorMsg("");
+
+    if (!name || !password) {
+setNotification({
+  type: "error",
+  message: "Enter username and password"
+});      return;
     }
 
     const { data, error } = await supabase
       .from("accounts")
       .select("*")
-      .eq("id", selectedAccount)
+      .eq("name", name)
       .single();
 
     if (error || !data) {
-      setErrorMsg("Account not found");
-      return;
+setNotification({
+  type: "error",
+  message: "Account not found"
+});      return;
     }
 
-    const match = bcrypt.compareSync(loginPassword, data.password_hash);
-
-    if (match) {
-      login(data);
-      setErrorMsg("");
-      navigate("/dashboard");
-    } else {
-      setErrorMsg("Incorrect password");
+    // 🔒 Status checks (IMPORTANT for your system)
+    if (data.status === "pending") {
+setNotification({
+  type: "info",
+  message: "Your account is awaiting approval. Check again in a few minutes"
+});      return;
     }
+
+    if (data.status === "disabled") {
+setNotification({
+  type: "error",
+  message: "Your account has been disabled. Contact admin to re-activate"
+});      return;
+    }
+
+    const match = bcrypt.compareSync(
+      password,
+      data.password_hash
+    );
+
+    if (!match) {
+setNotification({
+  type: "error",
+  message: "Incorrect password"
+});      return;
+    }
+
+    login(data);
+    navigate("/dashboard");
   }
 
   return (
     <div className="page">
-      <Navbar />
-      <h1>Accounts</h1>
+      <h1>Login</h1>
 
-      {errorMsg && <p style={{ color: "red" }}>{errorMsg}</p>}
+{notification.message && (
+  <div className={`alert ${notification.type}`}>
+    {notification.message}
+  </div>
+)}
 
-      <div className="form-container" style={{ marginTop: "30px" }}>
-        <h2>Login</h2>
+      <div className="form-container">
 
         <div className="form-group">
-          <label>Select Account</label>
-          <select
-            value={selectedAccount}
-            onChange={(e) => setSelectedAccount(e.target.value)}
-          >
-            <option value="">--Select--</option>
-            {accounts.map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.name}
-              </option>
-            ))}
-          </select>
+          <label>Username</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Username"
+          />
         </div>
 
         <div className="form-group">
           <label>Password</label>
           <input
             type="password"
-            value={loginPassword}
-            onChange={(e) => setLoginPassword(e.target.value)}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
           />
         </div>
@@ -103,6 +121,12 @@ export default function Accounts() {
         <button className="btn" onClick={handleLogin}>
           Login
         </button>
+
+        <p style={{ marginTop: "15px" }}>
+          No account?{" "}
+          <Link to="/register">Create Account</Link>
+        </p>
+
       </div>
     </div>
   );
