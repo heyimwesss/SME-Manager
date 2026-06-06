@@ -65,6 +65,8 @@ const [exportMode, setExportMode] = useState(false);
 const reportRef = useRef();
 
 const today = new Date();
+const baseDate = today; // later can be custom if needed
+
 const todayStr = today.toISOString().split("T")[0];
 
 /* ---------- CUSTOM DATES ---------- */
@@ -72,8 +74,13 @@ const [customStartDate,setCustomStartDate] = useState(todayStr);
 const [customEndDate,setCustomEndDate] = useState(todayStr);
 
 /* ---------- WEEK ---------- */
-const weekStart = new Date(today);
-weekStart.setDate(today.getDate() - today.getDay());
+const weekStart = new Date(baseDate);
+
+// get Monday (NOT Sunday-based)
+const day = weekStart.getDay(); // 0=Sun,1=Mon...
+const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
+
+weekStart.setDate(diff);
 
 const weekEnd = new Date(weekStart);
 weekEnd.setDate(weekStart.getDate() + 6);
