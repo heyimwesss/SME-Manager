@@ -253,8 +253,8 @@ body {
   }
 }
 .export-mode .receipt-report {
-  width: 794px; /* A4 width consistency for export */
-  max-width: none;
+  width: 794px !important;  /* A4 width in pixels at 96 DPI */
+  max-width: 794px !important;
 }
 
 .download-buttons {

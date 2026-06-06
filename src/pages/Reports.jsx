@@ -353,23 +353,22 @@ ${new Date(customEndDate).toLocaleDateString()}`;
 const downloadImage = async () => {
   const prev = showTransactions;
 
-  setExportMode(true);
-  setShowTransactions(true);
+setExportMode(true);
+setShowTransactions(true);
 
-  // wait for DOM to fully re-render in export mode
-  await new Promise(requestAnimationFrame);
-  await new Promise(requestAnimationFrame);
+await new Promise(requestAnimationFrame);
+await new Promise(requestAnimationFrame);
+await new Promise(resolve => setTimeout(resolve, 100));
 
-  const canvas = await html2canvas(reportRef.current, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: "#ffffff",
-    scrollX: 0,
-    scrollY: 0,
-    windowWidth: 794, // 🚨 locks rendering width
-  });
+const canvas = await html2canvas(reportRef.current, {
+  scale: 2,
+  useCORS: true,
+  backgroundColor: "#ffffff",
+  width: 794,
+  windowWidth: 794,
+});
 
-  const imgData = canvas.toDataURL("image/png");
+const imgData = canvas.toDataURL("image/png");
 
   const link = document.createElement("a");
   link.href = imgData;
