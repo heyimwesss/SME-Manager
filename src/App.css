@@ -200,7 +200,6 @@ body {
   margin: 0 auto;
   padding: 16px;
   box-sizing: border-box;
-  background: white;
 }
 .page {
   overflow-x: hidden;
@@ -208,12 +207,20 @@ body {
 .line {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .line span {
+  min-width: 0;
   word-break: break-word;
+}
+.line span:last-child {
+  text-align: right;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .receipt-table {
@@ -230,14 +237,15 @@ body {
 }
 @media (max-width: 600px) {
   .receipt-report {
-    max-width: 100%;
     padding: 12px;
   }
 
   .line {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+    font-size: 13px;
+  }
+
+  .line span:first-child {
+    max-width: 60%;
   }
 
   .receipt-table {
