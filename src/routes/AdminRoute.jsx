@@ -15,13 +15,6 @@ export default function AdminRoute({ children }) {
   if (!activeAccount.is_admin) {
     return <Navigate to="/dashboard" />;
   }
-<Route
-  path="/transactions"
-  element={
-    <ProtectedRoute>
-      <Transactions />
-    </ProtectedRoute>
-  }
-/>
+
   return children;
 }
