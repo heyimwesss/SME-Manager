@@ -9,6 +9,7 @@ import Notes from "./pages/Notes";
 import Register from "./pages/Register";
 import AdminRoute from "./routes/AdminRoute";
 import AdminAccounts from "./pages/AdminAccounts";
+
 import "./App.css";
 
 export default function App() {

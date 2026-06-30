@@ -4,7 +4,7 @@ import { formatMoney } from "../utils/formatMoney";
 import { useAccount } from "../context/AccountContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-
+import { useMemo } from "react";
 
   function MoneyInput({ value, onChange, placeholder = "0" }) {
   const formatNumber = (val) => {
@@ -43,12 +43,26 @@ export default function Transactions() {
     if (!activeAccount) navigate("/accounts");
   }, [activeAccount, navigate]);
 
-
   
   // SALE FORM
   const [item, setItem] = useState("");
   const [price, setPrice] = useState("");
   const [payment, setPayment] = useState("Cash");
+const [searchText, setSearchText] = useState("");
+const [searchType, setSearchType] = useState("All");
+const [selectedTx, setSelectedTx] = useState(null);
+const [debouncedSearch, setDebouncedSearch] = useState("");
+const [startDate, setStartDate] = useState("");
+const [endDate, setEndDate] = useState("");
+
+useEffect(() => {
+  const t = setTimeout(() => {
+    setDebouncedSearch(searchText);
+  }, 300); // 300ms is smoother
+
+  return () => clearTimeout(t);
+}, [searchText]);
+
 
   // REMITTANCE FORM
   const [remitAmount, setRemitAmount] = useState("");
@@ -163,6 +177,87 @@ export default function Transactions() {
     return date < yesterdayStr;
   });
 
+
+const allTransactions = useMemo(() => {
+  const txs = [
+    ...sales.map((s) => ({
+      id: "s" + s.id,
+      type: "Sale",
+      description: s.item_name,
+      amount: Number(s.price),
+      payment: s.payment_mode,
+      date: s.sold_at,
+      isExpense: false,
+    })),
+
+    ...expenses.map((e) => ({
+      id: "e" + e.id,
+      type: "Expense",
+      description: e.description,
+      amount: Number(e.amount),
+      payment: "Cash",
+      date: e.expense_date,
+      isExpense: true,
+    })),
+
+    ...bankExpenses.map((b) => ({
+      id: "b" + b.id,
+      type: "Bank Expense",
+      description: b.description,
+      amount: Number(b.amount),
+      payment: "Bank",
+      date: b.created_at,
+      isExpense: true,
+    })),
+
+    ...remittances.map((r) => ({
+      id: "r" + r.id,
+      type: "Remittance",
+      description: r.note,
+      amount: Number(r.amount),
+      payment: "Cash Out",
+      date: r.created_at,
+      isExpense: true,
+    })),
+  ];
+
+  return txs.sort((a, b) => new Date(b.date) - new Date(a.date));
+}, [sales, expenses, bankExpenses, remittances]);
+
+// sort newest first
+const filteredSearchResults = useMemo(() => {
+  const q = debouncedSearch.toLowerCase().trim();
+
+  const hasDateFilter = startDate || endDate;
+
+  return allTransactions.filter((tx) => {
+    const txDate = tx.date ? new Date(tx.date) : null;
+
+    // TEXT MATCH
+    const matchesText =
+      !q ||
+      tx.description.toLowerCase().includes(q) ||
+      String(tx.amount).includes(q);
+
+    // TYPE MATCH
+    const matchesType =
+      searchType === "All" || tx.type === searchType;
+
+    // DATE RANGE MATCH
+    let matchesDate = true;
+
+    if (hasDateFilter && txDate) {
+      const txDay = txDate.toISOString().split("T")[0];
+
+      if (startDate && txDay < startDate) matchesDate = false;
+      if (endDate && txDay > endDate) matchesDate = false;
+    }
+
+    return matchesText && matchesType && matchesDate;
+  });
+}, [debouncedSearch, searchType, startDate, endDate, allTransactions]);
+
+
   /* ---------- PREVIOUS DATA (OPENING CASH) ---------- */
   const previousSales = sales.filter((s) => {
     const date = s.sold_at.split("T")[0];
@@ -206,16 +301,74 @@ export default function Transactions() {
   const cashOnHand =
     openingCash + totalCashSales - totalExpenses - totalRemittances;
 
-  if (!activeAccount) return null;
+if (!activeAccount) return null;
 
-  return (
-    <>
-      <Navbar />
+return (
+  <>
+    {/* ---------- TRANSACTION MODAL ---------- */}
+    {selectedTx && (
+      <div className="modal-overlay" onClick={() => setSelectedTx(null)}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <h2>Transaction Details</h2>
 
-      <div className="page">
-        <h1>Transactions - {activeAccount.name}</h1>
+          <div className="modal-row">
+            <strong>Type:</strong>
+            <span>{selectedTx.type}</span>
+          </div>
+
+          <div className="modal-row">
+            <strong>Description:</strong>
+            <span>{selectedTx.description}</span>
+          </div>
+
+          <div className="modal-row">
+            <strong>Amount:</strong>
+            <span className={selectedTx.isExpense ? "text-red" : "text-green"}>
+              {selectedTx.isExpense ? "-" : ""}
+              {formatMoney(selectedTx.amount)}
+            </span>
+          </div>
+
+          <div className="modal-row">
+            <strong>Payment:</strong>
+            <span>{selectedTx.payment}</span>
+          </div>
+
+          <div className="modal-row">
+            <strong>Date:</strong>
+            <span>
+              {new Date(selectedTx.date).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </span>
+          </div>
+
+          <div className="modal-row">
+            <strong>Time:</strong>
+            <span>
+              {new Date(selectedTx.date).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+
+          <button className="btn" onClick={() => setSelectedTx(null)}>
+            Close
+          </button>
+        </div>
+      </div>
+    )}
+
+    <Navbar />
+
+    <div className="page">
+      <h1>Transactions - {activeAccount.name}</h1>
 
         {/* ALL YOUR UI REMAINS EXACTLY THE SAME BELOW */}
+
 
         {/* SALE FORM */}
         <div className="form-container">
@@ -347,6 +500,140 @@ export default function Transactions() {
           </button>
         </div>
 
+{/* ---------- TRANSACTION SEARCH ---------- */}
+<div className="table-container" style={{ marginTop: 30 }}>
+  <h2>Search Transactions</h2>
+
+  {/* SEARCH INPUT */}
+  <div className="form-group">
+    <label>Search</label>
+    <input
+      type="text"
+      placeholder="Search by item, description, amount..."
+      value={searchText}
+      onChange={(e) => setSearchText(e.target.value)}
+    />
+  </div>
+
+<div className="form-group">
+  <label>Quick Range</label>
+  <select
+    onChange={(e) => {
+      const today = new Date();
+
+      if (e.target.value === "7") {
+        const d = new Date();
+        d.setDate(today.getDate() - 7);
+        setStartDate(d.toISOString().split("T")[0]);
+        setEndDate(today.toISOString().split("T")[0]);
+      }
+
+      if (e.target.value === "30") {
+        const d = new Date();
+        d.setDate(today.getDate() - 30);
+        setStartDate(d.toISOString().split("T")[0]);
+        setEndDate(today.toISOString().split("T")[0]);
+      }
+
+      if (e.target.value === "all") {
+        setStartDate("");
+        setEndDate("");
+      }
+    }}
+  >
+    <option value="all">All Time</option>
+    <option value="7">Last 7 Days</option>
+    <option value="30">Last 30 Days</option>
+  </select>
+</div>
+
+<div className="form-group">
+  <label>Filter Type</label>
+  <select
+    value={searchType}
+    onChange={(e) => setSearchType(e.target.value)}
+  >
+    <option value="All">All</option>
+    <option value="Sale">Sale</option>
+    <option value="Expense">Expense</option>
+    <option value="Bank Expense">Bank Expense</option>
+    <option value="Remittance">Remittance</option>
+  </select>
+</div>
+</div>
+
+{/* ---------- SEARCH RESULTS ---------- */}
+{(searchText.trim() !== "" || searchType !== "All") && (
+  <div className="table-container" style={{ marginTop: 30 }}>
+    <h2>Search Results</h2>
+
+    {filteredSearchResults.length === 0 ? (
+      <p>No matching transactions found.</p>
+    ) : (
+      <div className="search-results-list">
+{filteredSearchResults.map((tx) => {
+  const dateObj = new Date(tx.date);
+
+  return (
+    <div
+      key={tx.id}
+      className="search-card"
+      onClick={() => setSelectedTx(tx)}
+      style={{ cursor: "pointer" }}
+    >
+      <div className="search-row top">
+        <span className="search-type">{tx.type}</span>
+
+        <span
+          className={`search-amount mono ${
+            tx.isExpense ? "text-red" : "text-green"
+          }`}
+        >
+          {tx.isExpense ? "-" : "+"}
+          {formatMoney(tx.amount)}
+        </span>
+      </div>
+
+      <div className="search-row">
+        <span className="search-label">Description</span>
+        <span className="search-value mono">{tx.description}</span>
+      </div>
+
+      <div className="search-row">
+        <span className="search-label">Payment</span>
+        <span className="search-value mono">{tx.payment}</span>
+      </div>
+
+      <div className="search-row">
+        <span className="search-label">Date</span>
+        <span className="search-value mono">
+          {dateObj.toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })}
+        </span>
+      </div>
+
+      <div className="search-row">
+        <span className="search-label">Time</span>
+        <span className="search-value mono">
+          {dateObj.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      </div>
+    </div>
+  );
+})}
+      </div>
+    )}
+  </div>
+)}
+
+
+
         {/* TRANSACTIONS TABLE */}
         <div className="table-container" style={{ marginTop: 30 }}>
           <h2>Transactions</h2>
@@ -356,7 +643,6 @@ export default function Transactions() {
             <select value={view} onChange={(e) => setView(e.target.value)}>
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
-              <option value="older">Older</option>
             </select>
           </div>
 
@@ -453,8 +739,8 @@ export default function Transactions() {
         </div>
       </div>
     </>
-  );
-}
+  
+)
 
 function ExpenseForm({ onSave }) {
   const [desc, setDesc] = useState("");
@@ -491,4 +777,4 @@ function ExpenseForm({ onSave }) {
       </button>
     </>
   );
-}
+}}

@@ -1,20 +1,17 @@
 import { useAccount } from "../context/AccountContext";
 import { Navigate } from "react-router-dom";
 
-export default function AdminRoute({ children }) {
+export default function ProtectedRoute({ children }) {
   const { activeAccount, loading } = useAccount();
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  if (loading) return null;
 
   if (!activeAccount) {
-    return <Navigate to="/" />;
+    return <Navigate to="/accounts" replace />;
   }
 
-  if (!activeAccount.is_admin) {
-    return <Navigate to="/dashboard" />;
-  }
+  return children;
+}
 <Route
   path="/transactions"
   element={
@@ -23,5 +20,3 @@ export default function AdminRoute({ children }) {
     </ProtectedRoute>
   }
 />
-  return children;
-}

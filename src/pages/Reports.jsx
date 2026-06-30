@@ -110,6 +110,8 @@ fetchRemittances()
 ]);
 }
 
+
+
 async function fetchSales(){
 
 const {data} = await supabase
@@ -155,6 +157,18 @@ setRemittances(data || []);
 }
 
 /* ---------- PERIOD HELPERS ---------- */
+function formatReportDate(date){
+
+    return new Date(date).toLocaleDateString("en-GB",{
+
+        day:"numeric",
+        month:"long",
+        year:"numeric"
+
+    });
+
+}
+
 
 function getPeriodStart(){
 
@@ -233,6 +247,67 @@ const filteredRemittances = remittances.filter(
 r=>filterByDate(r.created_at.split("T")[0])
 );
 
+
+const allTransactions = [
+  ...filteredSales.map(s => ({
+    id: "s" + s.id,
+    type: "Sale",
+    item: s.item_name,
+    payment: s.payment_mode,
+    amount: Number(s.price),
+    date: s.sold_at,
+    isExpense: false
+  })),
+
+  ...filteredExpenses.map(e => ({
+    id: "e" + e.id,
+    type: "Expense",
+    item: e.description,
+    payment: "Cash",
+    amount: Number(e.amount),
+    date: e.expense_date,
+    isExpense: true
+  })),
+
+  ...filteredBankExpenses.map(e => ({
+    id: "b" + e.id,
+    type: "Expense",
+    item: e.description,
+    payment: "Bank",
+    amount: Number(e.amount),
+    date: e.created_at,
+    isExpense: true
+  })),
+
+  ...filteredRemittances.map(r => ({
+    id: "r" + r.id,
+    type: "Remit",
+    item: r.note,
+    payment: "Cash",
+    amount: Number(r.amount),
+    date: r.created_at,
+    isExpense: true
+  }))
+];
+
+allTransactions.sort(
+  (a, b) => new Date(a.date) - new Date(b.date)
+);
+
+const groupedTransactions = allTransactions.reduce((groups, tx) => {
+
+  const day = tx.date.split("T")[0];
+
+  if (!groups[day]) {
+    groups[day] = [];
+  }
+
+  groups[day].push(tx);
+
+  return groups;
+
+}, {});
+
 /* ---------- PREVIOUS DATA ---------- */
 
 const previousSales = sales.filter(
@@ -254,6 +329,8 @@ s=>isBeforePeriod(s.sold_at.split("T")[0])
 const previousBankExpenses = bankExpenses.filter(
 e=>isBeforePeriod(e.created_at.split("T")[0])
 );
+
+
 
 /* ---------- OPENING BALANCES ---------- */
 
@@ -353,6 +430,8 @@ reportRange =
  -
 ${new Date(customEndDate).toLocaleDateString()}`;
 }
+
+
 
 
 /* ---------- DOWNLOAD ---------- */
@@ -565,48 +644,47 @@ Transactions {showTransactions ? "▲":"▼"}
 
 <tbody>
 
-{filteredSales.map(s=>(
-<tr key={"s"+s.id}>
-<td>Sale</td>
-<td>{s.item_name}</td>
-<td>{s.payment_mode}</td>
-<td className="green">
-{formatMoney(s.price)}
-</td>
-</tr>
-))}
+{Object.entries(groupedTransactions).map(([date, transactions]) => (
 
-{filteredExpenses.map(e=>(
-<tr key={"e"+e.id}>
-<td>Expense</td>
-<td>{e.description}</td>
-<td>Cash</td>
-<td className="red">
--{formatMoney(e.amount)}
-</td>
-</tr>
-))}
+    <>
 
-{filteredBankExpenses.map(e=>(
-<tr key={"b"+e.id}>
-<td>Expense</td>
-<td>{e.description}</td>
-<td>Bank</td>
-<td className="red">
--{formatMoney(e.amount)}
-</td>
-</tr>
-))}
+        {(view === "weekly" || view === "monthly") && (
 
-{filteredRemittances.map(r=>(
-<tr key={"r"+r.id}>
-<td>Remit</td>
-<td>{r.note}</td>
-<td>Cash</td>
-<td className="red">
--{formatMoney(r.amount)}
-</td>
-</tr>
+            <tr key={"header-"+date} className="date-header">
+
+                <td colSpan="4">
+
+                    {formatReportDate(date)}
+
+                </td>
+
+            </tr>
+
+        )}
+
+        {transactions.map(tx=>(
+
+            <tr key={tx.id}>
+
+                <td>{tx.type}</td>
+
+                <td>{tx.item}</td>
+
+                <td>{tx.payment}</td>
+
+                <td className={tx.isExpense ? "red" : "green"}>
+
+                    {tx.isExpense ? "-" : ""}
+                    {formatMoney(tx.amount)}
+
+                </td>
+
+            </tr>
+
+        ))}
+
+    </>
+
 ))}
 
 </tbody>

@@ -132,130 +132,120 @@ export default function Dashboard() {
   const totalBalance =
     cashOnHand + bankBalance;
 
-  if (!activeAccount) return <p>Loading account...</p>;
+if (!activeAccount) return <p>Loading account...</p>;
 
-  return (
-    <div className="page">
-      <Navbar />
 
+return (
+  <>
+    <Navbar />
+
+    <div className="page dashboard-page">
       <h1>Dashboard</h1>
 
-      {/* SUMMARY CARDS */}
-      <div className="cards">
+      {/* content */}
 
-        <div className="card">
-          <h3>Opening Cash</h3>
-          <p className="amount">{formatMoney(openingCash)}</p>
-        </div>
+    {/* ===== TOP KPI (MOST IMPORTANT) ===== */}
+    <div className="kpi-grid">
 
-        <div className="card card-sales">
-          <h3>Today's Sales</h3>
-          <p className="amount">{formatMoney(totalSales)}</p>
-        </div>
-
-        <div className="card card-expenses">
-          <h3>Cash Expenses</h3>
-          <p className="amount">{formatMoney(cashExpenses)}</p>
-        </div>
-
-        <div className="card card-remittance">
-          <h3>Cash Given to Boss</h3>
-          <p className="amount">{formatMoney(cashRemitted)}</p>
-        </div>
-
-        <div className="card card-bank-expenses">
-          <h3>Bank Expenses</h3>
-          <p className="amount">{formatMoney(bankExpensesTotal)}</p>
-        </div>
-
-        <div className="card card-cash-on-hand">
-          <h3>Cash On Hand</h3>
-          <p className={`amount ${cashOnHand >= 0 ? "faded-green" : "faded-red"}`}>
-            {formatMoney(cashOnHand)}
-          </p>
-        </div>
-
-        <div className="card card-bank-balance">
-          <h3>Bank Balance</h3>
-          <p className={`amount ${bankBalance >= 0 ? "faded-green" : "faded-red"}`}>
-            {formatMoney(bankBalance)}
-          </p>
-        </div>
-
-        <div className="card card-total-balance">
-          <h3>Total Balance</h3>
-          <p className={`amount ${totalBalance >= 0 ? "faded-green" : "faded-red"}`}>
-            {formatMoney(totalBalance)}
-          </p>
-        </div>
-
+      <div className="kpi-card highlight">
+        <h3>Total Balance</h3>
+        <p className={totalBalance >= 0 ? "good" : "bad"}>
+          {formatMoney(totalBalance)}
+        </p>
       </div>
 
-      {/* TRANSACTIONS */}
-      <div className="table-container">
-        <h2>Today's Transactions</h2>
+      <div className="kpi-card">
+        <h3>Cash On Hand</h3>
+        <p className={cashOnHand >= 0 ? "good" : "bad"}>
+          {formatMoney(cashOnHand)}
+        </p>
+      </div>
 
-        <table className="transactions-table">
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>Item / Description</th>
-              <th>Payment</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {todaySales.map(s => (
-              <tr key={"s" + s.id}>
-                <td>Sale</td>
-                <td>{s.item_name}</td>
-                <td>{s.payment_mode}</td>
-                <td className="green">{formatMoney(s.price)}</td>
-              </tr>
-            ))}
-
-            {todayExpenses.map(e => (
-              <tr key={"e" + e.id}>
-                <td>Expense</td>
-                <td>{e.description}</td>
-                <td>Cash</td>
-                <td className="red">-{formatMoney(e.amount)}</td>
-              </tr>
-            ))}
-
-            {todayBankExpenses.map(b => (
-              <tr key={"b" + b.id}>
-                <td>Expense</td>
-                <td>{b.description}</td>
-                <td>Bank</td>
-                <td className="red">-{formatMoney(b.amount)}</td>
-              </tr>
-            ))}
-
-            {todayRemittances.map(r => (
-              <tr key={"r" + r.id}>
-                <td>Remit</td>
-                <td>{r.note}</td>
-                <td>Cash</td>
-                <td className="red">-{formatMoney(r.amount)}</td>
-              </tr>
-            ))}
-
-            {todaySales.length === 0 &&
-             todayExpenses.length === 0 &&
-             todayRemittances.length === 0 && (
-              <tr>
-                <td colSpan="4">No transactions today</td>
-              </tr>
-            )}
-
-          </tbody>
-        </table>
-
+      <div className="kpi-card">
+        <h3>Bank Balance</h3>
+        <p className={bankBalance >= 0 ? "good" : "bad"}>
+          {formatMoney(bankBalance)}
+        </p>
       </div>
 
     </div>
-  );
-    }
+
+    {/* ===== PERFORMANCE SUMMARY ===== */}
+    <div className="cards-grid">
+
+      <div className="card">
+        <h3>Opening Cash</h3>
+        <p className="amount">{formatMoney(openingCash)}</p>
+      </div>
+
+      <div className="card card-sales">
+        <h3>Today's Sales</h3>
+        <p className="amount">{formatMoney(totalSales)}</p>
+      </div>
+
+      <div className="card card-expenses">
+        <h3>Cash Expenses</h3>
+        <p className="amount">{formatMoney(cashExpenses)}</p>
+      </div>
+
+      <div className="card card-remittance">
+        <h3>Cash Given to Boss</h3>
+        <p className="amount">{formatMoney(cashRemitted)}</p>
+      </div>
+
+      <div className="card card-bank-expenses">
+        <h3>Bank Expenses</h3>
+        <p className="amount">{formatMoney(bankExpensesTotal)}</p>
+      </div>
+
+    </div>
+
+    {/* ===== ACTIVITY FEED ===== */}
+    <div className="table-container">
+      <h2>Today's Activity</h2>
+
+      <div className="activity-list">
+
+        {todaySales.map(s => (
+          <div className="activity-item income" key={"s" + s.id}>
+            <span>Sale</span>
+            <span>{s.item_name}</span>
+            <span className="green">+{formatMoney(s.price)}</span>
+          </div>
+        ))}
+
+        {todayExpenses.map(e => (
+          <div className="activity-item expense" key={"e" + e.id}>
+            <span>Expense</span>
+            <span>{e.description}</span>
+            <span className="red">-{formatMoney(e.amount)}</span>
+          </div>
+        ))}
+
+        {todayBankExpenses.map(b => (
+          <div className="activity-item expense" key={"b" + b.id}>
+            <span>Bank</span>
+            <span>{b.description}</span>
+            <span className="red">-{formatMoney(b.amount)}</span>
+          </div>
+        ))}
+
+        {todayRemittances.map(r => (
+          <div className="activity-item expense" key={"r" + r.id}>
+            <span>Remittance</span>
+            <span>{r.note}</span>
+            <span className="red">-{formatMoney(r.amount)}</span>
+          </div>
+        ))}
+
+        {todaySales.length === 0 &&
+         todayExpenses.length === 0 &&
+         todayRemittances.length === 0 && (
+          <p className="empty-state">No transactions today</p>
+        )}
+
+      </div>
+    </div>
+  </div>
+  </>
+);}
