@@ -643,6 +643,7 @@ return (
             <select value={view} onChange={(e) => setView(e.target.value)}>
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
+              <option value="older">Older</option>
             </select>
           </div>
 
