@@ -112,26 +112,60 @@ fetchRemittances()
 
 
 
-async function fetchSales(){
+async function fetchSales() {
+  let allSales = [];
+  let from = 0;
+  const pageSize = 1000;
 
-const {data} = await supabase
-.from("sales")
-.select("*")
-.eq("account_id",activeAccount.id)
-.order("sold_at",{ascending:true});
+  while (true) {
+    const { data, error } = await supabase
+      .from("sales")
+      .select("*")
+      .eq("account_id", activeAccount.id)
+      .order("sold_at", { ascending: false })
+      .range(from, from + pageSize - 1);
 
-setSales(data || []);
+    if (error) {
+      console.error("Fetch sales error:", error);
+      alert(error.message);
+      return;
+    }
+
+    if (!data || data.length === 0) break;
+
+    allSales = [...allSales, ...data];
+
+    // Last page reached
+    if (data.length < pageSize) break;
+
+    from += pageSize;
+  }
+
+  setSales(allSales);
 }
 
-async function fetchExpenses(){
+async function fetchExpenses() {
+  let all = [];
+  let from = 0;
+  const pageSize = 1000;
 
-const {data} = await supabase
-.from("expenses")
-.select("*")
-.eq("account_id",activeAccount.id)
-.order("expense_date",{ascending:true});
+  while (true) {
+    const { data, error } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("account_id", activeAccount.id)
+      .order("expense_date", { ascending: false })
+      .range(from, from + pageSize - 1);
 
-setExpenses(data || []);
+    if (error) return console.error(error);
+
+    if (!data.length) break;
+    all.push(...data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  setExpenses(all);
 }
 
 async function fetchBankExpenses(){
@@ -648,19 +682,13 @@ Transactions {showTransactions ? "▲":"▼"}
 
     <>
 
-        {(view === "weekly" || view === "monthly") && (
-
-            <tr key={"header-"+date} className="date-header">
-
-                <td colSpan="4">
-
-                    {formatReportDate(date)}
-
-                </td>
-
-            </tr>
-
-        )}
+{(view === "weekly" || view === "monthly" || view === "custom") && (
+    <tr key={"header-" + date} className="date-header">
+        <td colSpan="4">
+            {formatReportDate(date)}
+        </td>
+    </tr>
+)}
 
         {transactions.map(tx=>(
 

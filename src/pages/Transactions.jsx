@@ -91,23 +91,61 @@ useEffect(() => {
     }
   }, [activeAccount]);
 
-  async function fetchSales() {
-    const { data } = await supabase
+async function fetchSales() {
+  let allSales = [];
+  let from = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data, error } = await supabase
       .from("sales")
       .select("*")
       .eq("account_id", activeAccount.id)
-      .order("sold_at", { ascending: false });
-    setSales(data || []);
+      .order("sold_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.error("Fetch sales error:", error);
+      alert(error.message);
+      return;
+    }
+
+    if (!data || data.length === 0) break;
+
+    allSales = [...allSales, ...data];
+
+    // Last page reached
+    if (data.length < pageSize) break;
+
+    from += pageSize;
   }
 
-  async function fetchExpenses() {
-    const { data } = await supabase
+  setSales(allSales);
+}
+
+async function fetchExpenses() {
+  let all = [];
+  let from = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data, error } = await supabase
       .from("expenses")
       .select("*")
       .eq("account_id", activeAccount.id)
-      .order("expense_date", { ascending: false });
-    setExpenses(data || []);
+      .order("expense_date", { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) return console.error(error);
+
+    if (!data.length) break;
+    all.push(...data);
+    if (data.length < pageSize) break;
+    from += pageSize;
   }
+
+  setExpenses(all);
+}
 
   async function fetchRemittances() {
     const { data } = await supabase
