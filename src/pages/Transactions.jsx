@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../services/supabase";
 import { formatMoney } from "../utils/formatMoney";
 import { useAccount } from "../context/AccountContext";
-import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
 const HISTORY_PAGE_SIZE = 20;
@@ -15,7 +14,7 @@ function NumericKeypad({ value, onChange, onEnter }) {
     }
 
     if (key === "back") {
-      onChange(String(value || "").slice(0, -1));
+      onChange(String(value || "").replace(/,/g, "").slice(0, -1));
       return;
     }
 
@@ -30,7 +29,7 @@ function NumericKeypad({ value, onChange, onEnter }) {
       return;
     }
 
-    const current = String(value || "");
+    const current = String(value || "").replace(/,/g, "");
 
     if (key === "0" && current === "0") return;
 
@@ -88,7 +87,6 @@ function NumericKeypad({ value, onChange, onEnter }) {
 
 export default function Transactions() {
   const { activeAccount } = useAccount();
-  const navigate = useNavigate();
 
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
@@ -113,6 +111,30 @@ export default function Transactions() {
   const [remittanceNote, setRemittanceNote] = useState("Given to boss");
 
   const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState(null);
+
+  function showAlert(message, type = "danger") {
+    setNotice({ message: String(message), type, visible: true });
+  }
+
+  useEffect(() => {
+    if (!notice) return undefined;
+
+    const fadeTimer = window.setTimeout(() => {
+      setNotice((current) =>
+        current ? { ...current, visible: false } : current
+      );
+    }, 4500);
+
+    const removeTimer = window.setTimeout(() => {
+      setNotice(null);
+    }, 5000);
+
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(removeTimer);
+    };
+  }, [notice?.message, notice?.type]);
 
   const [search, setSearch] = useState("");
   const [historyType, setHistoryType] = useState("All");
@@ -128,10 +150,9 @@ export default function Transactions() {
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
-    if (!activeAccount) {
-      navigate("/accounts");
-      return;
-    }
+    // The account context may still be restoring the selected account on refresh.
+    // Stay on /transactions while that happens; fetch once an account is available.
+    if (!activeAccount) return;
 
     fetchAllData();
   }, [activeAccount]);
@@ -173,7 +194,7 @@ export default function Transactions() {
 
       if (error) {
         console.error("Fetch sales error:", error);
-        alert(error.message);
+        showAlert(error.message);
         return;
       }
 
@@ -204,7 +225,7 @@ export default function Transactions() {
 
       if (error) {
         console.error("Fetch expenses error:", error);
-        alert(error.message);
+        showAlert(error.message);
         return;
       }
 
@@ -229,7 +250,7 @@ export default function Transactions() {
 
     if (error) {
       console.error("Fetch remittances error:", error);
-      alert(error.message);
+      showAlert(error.message);
       return;
     }
 
@@ -245,7 +266,7 @@ export default function Transactions() {
 
     if (error) {
       console.error("Fetch bank expenses error:", error);
-      alert(error.message);
+      showAlert(error.message);
       return;
     }
 
@@ -655,13 +676,13 @@ export default function Transactions() {
 
   async function handleSale() {
     if (!itemName.trim()) {
-      alert("Please enter the item name.");
+      showAlert("Please enter the item name.");
       return;
     }
 
 const amount = Number(saleAmount.replace(/,/g, ""));
     if (!amount || amount <= 0) {
-      alert("Please enter a valid sale amount.");
+      showAlert("Please enter a valid sale amount.");
       return;
     }
 
@@ -681,7 +702,7 @@ const amount = Number(saleAmount.replace(/,/g, ""));
 
         if (error) throw error;
 
-        alert("Sale updated successfully.");
+        showAlert("Sale updated successfully.", "success");
       } else {
         const { error } = await supabase
           .from("sales")
@@ -694,14 +715,14 @@ const amount = Number(saleAmount.replace(/,/g, ""));
 
         if (error) throw error;
 
-        alert("Sale recorded successfully.");
+        showAlert("Sale recorded successfully.", "success");
       }
 
       clearForm();
       await refreshTransactions();
     } catch (error) {
       console.error(error);
-      alert(error.message);
+      showAlert(error.message);
     } finally {
       setSaving(false);
     }
@@ -709,18 +730,18 @@ const amount = Number(saleAmount.replace(/,/g, ""));
 
   async function handleExpense() {
     if (!expenseDescription.trim()) {
-      alert("Please enter the expense description.");
+      showAlert("Please enter the expense description.");
       return;
     }
 
 const amount = Number(expenseAmount.replace(/,/g, ""));
     if (!amount || amount <= 0) {
-      alert("Please enter a valid expense amount.");
+      showAlert("Please enter a valid expense amount.");
       return;
     }
 
     if (!editingTransaction && amount > cashOnHand) {
-      alert(
+      showAlert(
         `Insufficient cash on hand.\n\nAvailable: ${formatMoney(
           cashOnHand
         )}`
@@ -740,7 +761,7 @@ const amount = Number(expenseAmount.replace(/,/g, ""));
         cashOnHand + oldAmount;
 
       if (amount > availableBeforeEdit) {
-        alert(
+        showAlert(
           `Insufficient cash on hand.\n\nAvailable: ${formatMoney(
             availableBeforeEdit
           )}`
@@ -764,7 +785,7 @@ const amount = Number(expenseAmount.replace(/,/g, ""));
 
         if (error) throw error;
 
-        alert("Expense updated successfully.");
+        showAlert("Expense updated successfully.", "success");
       } else {
         const { error } = await supabase
           .from("expenses")
@@ -776,14 +797,14 @@ const amount = Number(expenseAmount.replace(/,/g, ""));
 
         if (error) throw error;
 
-        alert("Expense recorded successfully.");
+        showAlert("Expense recorded successfully.", "success");
       }
 
       clearForm();
       await refreshTransactions();
     } catch (error) {
       console.error(error);
-      alert(error.message);
+      showAlert(error.message);
     } finally {
       setSaving(false);
     }
@@ -791,13 +812,13 @@ const amount = Number(expenseAmount.replace(/,/g, ""));
 
   async function handleBankExpense() {
     if (!bankExpenseDescription.trim()) {
-      alert("Please enter the bank expense description.");
+      showAlert("Please enter the bank expense description.");
       return;
     }
 
 const amount = Number(bankExpenseAmount.replace(/,/g, ""));
     if (!amount || amount <= 0) {
-      alert("Please enter a valid bank expense amount.");
+      showAlert("Please enter a valid bank expense amount.");
       return;
     }
 
@@ -817,7 +838,7 @@ const amount = Number(bankExpenseAmount.replace(/,/g, ""));
 
         if (error) throw error;
 
-        alert("Bank expense updated successfully.");
+        showAlert("Bank expense updated successfully.", "success");
       } else {
         const { error } = await supabase
           .from("bank_expenses")
@@ -830,14 +851,14 @@ const amount = Number(bankExpenseAmount.replace(/,/g, ""));
 
         if (error) throw error;
 
-        alert("Bank expense recorded successfully.");
+        showAlert("Bank expense recorded successfully.", "success");
       }
 
       clearForm();
       await refreshTransactions();
     } catch (error) {
       console.error(error);
-      alert(error.message);
+      showAlert(error.message);
     } finally {
       setSaving(false);
     }
@@ -846,7 +867,7 @@ const amount = Number(bankExpenseAmount.replace(/,/g, ""));
   async function handleRemittance() {
 const amount = Number(remittanceAmount.replace(/,/g, ""));
     if (!amount || amount <= 0) {
-      alert("Please enter a valid cash-out amount.");
+      showAlert("Please enter a valid cash-out amount.");
       return;
     }
 
@@ -863,7 +884,7 @@ const amount = Number(remittanceAmount.replace(/,/g, ""));
     }
 
     if (amount > availableCash) {
-      alert(
+      showAlert(
         `Insufficient cash on hand.\n\nAvailable: ${formatMoney(
           availableCash
         )}`
@@ -888,7 +909,7 @@ const amount = Number(remittanceAmount.replace(/,/g, ""));
 
         if (error) throw error;
 
-        alert("Cash out updated successfully.");
+        showAlert("Cash out updated successfully.", "success");
       } else {
         const { error } = await supabase
           .from("cash_remittances")
@@ -902,14 +923,14 @@ const amount = Number(remittanceAmount.replace(/,/g, ""));
 
         if (error) throw error;
 
-        alert("Cash out recorded successfully.");
+        showAlert("Cash out recorded successfully.", "success");
       }
 
       clearForm();
       await refreshTransactions();
     } catch (error) {
       console.error(error);
-      alert(error.message);
+      showAlert(error.message);
     } finally {
       setSaving(false);
     }
@@ -946,7 +967,7 @@ const amount = Number(remittanceAmount.replace(/,/g, ""));
     if (
       getDateKey(transaction.date) !== today
     ) {
-      alert(
+      showAlert(
         "Only today's transactions can be edited."
       );
       return;
@@ -1039,7 +1060,7 @@ const amount = Number(remittanceAmount.replace(/,/g, ""));
       await refreshTransactions();
     } catch (error) {
       console.error(error);
-      alert(error.message);
+      showAlert(error.message);
     }
   }
 
@@ -1095,6 +1116,18 @@ function formatInputAmount(value) {
       <Navbar />
 
       <div className="transactions-page">
+        {notice && (
+          <div
+            className={`alert alert-${notice.type} transaction-notice ${
+              notice.visible ? "show" : "hide"
+            }`}
+            role={notice.type === "danger" ? "alert" : "status"}
+            aria-live="polite"
+          >
+            {notice.message}
+          </div>
+        )}
+
         <section className="pos-terminal">
           <div className="pos-mode-tabs">
             <button
@@ -1478,13 +1511,13 @@ function formatInputAmount(value) {
                 }
                 onChange={(value) => {
                   if (posMode === "sale") {
-                    setSaleAmount(value);
+                    setSaleAmount(formatInputAmount(value));
                   } else if (posMode === "expense") {
-                    setExpenseAmount(value);
+                    setExpenseAmount(formatInputAmount(value));
                   } else if (posMode === "bank-expense") {
-                    setBankExpenseAmount(value);
+                    setBankExpenseAmount(formatInputAmount(value));
                   } else {
-                    setRemittanceAmount(value);
+                    setRemittanceAmount(formatInputAmount(value));
                   }
                 }}
                 onEnter={handleSubmit}
@@ -3154,6 +3187,40 @@ function formatInputAmount(value) {
         .transactions-page select:focus-visible {
           outline: 2px solid #2563eb;
           outline-offset: 2px;
+        }
+
+        .transaction-notice {
+          position: sticky;
+          top: 12px;
+          z-index: 1100;
+          margin: 0 0 14px;
+          padding: 12px 16px;
+          border: 1px solid transparent;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+          opacity: 1;
+          transform: translateY(0);
+          transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .transaction-notice.alert-success {
+          color: #0f5132;
+          background-color: #d1e7dd;
+          border-color: #badbcc;
+        }
+
+        .transaction-notice.alert-danger {
+          color: #842029;
+          background-color: #f8d7da;
+          border-color: #f5c2c7;
+        }
+
+        .transaction-notice.hide {
+          opacity: 0;
+          transform: translateY(-6px);
+          pointer-events: none;
         }
 
         /* =====================================================
